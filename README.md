@@ -4,7 +4,6 @@
 [![FreeBSD](https://img.shields.io/badge/platform-FreeBSD-red.svg)](https://www.freebsd.org/)
 [![Go Version](https://img.shields.io/badge/go-%3E%3D1.19-blue.svg)](https://golang.org/)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
-[![Release](https://img.shields.io/badge/release-v1.0.0-blue.svg)](RELEASE-v1.0.0.md)
 
 FreeBSD network interface control library for Go with native cgo bindings.
 
