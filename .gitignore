@@ -1,0 +1,19 @@
+# Binaries
+examples/*/main
+*.out
+
+# Test coverage
+coverage.out
+coverage.html
+coverage-e2e.out
+coverage-e2e.html
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
