@@ -1,6 +1,3 @@
-//go:build freebsd
-// +build freebsd
-
 /*
 Package ip provides FreeBSD IP address management for network interfaces.
 

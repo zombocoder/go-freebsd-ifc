@@ -1,6 +1,3 @@
-//go:build freebsd
-// +build freebsd
-
 /*
 Package tun provides FreeBSD TUN (Layer 3 virtual network) interface management.
 

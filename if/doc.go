@@ -1,6 +1,3 @@
-//go:build freebsd
-// +build freebsd
-
 /*
 Package ifc provides FreeBSD network interface management.
 

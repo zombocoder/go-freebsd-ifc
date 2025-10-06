@@ -1,6 +1,3 @@
-//go:build freebsd
-// +build freebsd
-
 /*
 Package tap provides FreeBSD TAP (Layer 2 virtual network) interface management.
 

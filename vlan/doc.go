@@ -1,6 +1,3 @@
-//go:build freebsd
-// +build freebsd
-
 /*
 Package vlan provides FreeBSD vlan(4) VLAN interface management.
 

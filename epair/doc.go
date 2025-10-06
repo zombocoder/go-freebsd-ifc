@@ -1,6 +1,3 @@
-//go:build freebsd
-// +build freebsd
-
 /*
 Package epair provides FreeBSD epair(4) paired virtual interface management.
 

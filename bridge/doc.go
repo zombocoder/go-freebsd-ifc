@@ -1,6 +1,3 @@
-//go:build freebsd
-// +build freebsd
-
 /*
 Package bridge provides FreeBSD bridge(4) interface management.
 

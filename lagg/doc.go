@@ -1,6 +1,3 @@
-//go:build freebsd
-// +build freebsd
-
 /*
 Package lagg provides FreeBSD LAGG (Link Aggregation) interface management.
 
