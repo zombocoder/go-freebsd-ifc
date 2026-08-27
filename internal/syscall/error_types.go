@@ -34,6 +34,10 @@ var (
 	// ErrAddressInUse indicates the address is already in use
 	ErrAddressInUse = errors.New("address already in use")
 
+	// ErrAddressNotAvailable indicates the address is not assigned to the
+	// interface (EADDRNOTAVAIL)
+	ErrAddressNotAvailable = errors.New("address not available")
+
 	// ErrSyscall is a generic syscall error wrapper
 	ErrSyscall = errors.New("syscall error")
 )

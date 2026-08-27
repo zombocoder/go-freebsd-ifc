@@ -159,3 +159,90 @@ func TestInvalidPrefixLength(t *testing.T) {
 		t.Error("Add6() should fail with negative prefix length")
 	}
 }
+
+// TestDel4NeverAddedIsIdempotent deletes an IPv4 address that was never
+// assigned. The kernel answers EADDRNOTAVAIL ("can't assign requested
+// address"); Del4 documents itself as idempotent, so that must surface as nil.
+func TestDel4NeverAddedIsIdempotent(t *testing.T) {
+	skipIfNotRoot(t)
+	skipIfNotE2E(t)
+
+	// 127.0.0.77/32 is inside lo0's own prefix but is never assigned here.
+	ip := net.ParseIP("127.0.0.77")
+	mask := net.CIDRMask(32, 32)
+
+	if err := Del4("lo0", ip, mask); err != nil {
+		t.Errorf("Del4() on an unassigned address should be idempotent, got: %v", err)
+	}
+}
+
+// TestDel6NeverAddedIsIdempotent is TestDel4NeverAddedIsIdempotent for IPv6.
+func TestDel6NeverAddedIsIdempotent(t *testing.T) {
+	skipIfNotRoot(t)
+	skipIfNotE2E(t)
+
+	ip := net.ParseIP("::77")
+
+	if err := Del6("lo0", ip, 128); err != nil {
+		t.Errorf("Del6() on an unassigned address should be idempotent, got: %v", err)
+	}
+}
+
+// TestDel4AddDelDelLeavesNothingBehind walks the full add/delete/delete cycle
+// and confirms the address is really gone from the interface afterwards, so a
+// silently swallowed error cannot pass for idempotency.
+func TestDel4AddDelDelLeavesNothingBehind(t *testing.T) {
+	skipIfNotRoot(t)
+	skipIfNotE2E(t)
+
+	iface := "lo0"
+	addr := net.ParseIP("127.0.0.78")
+	mask := net.CIDRMask(32, 32)
+
+	if err := Add4(iface, addr, mask); err != nil {
+		t.Fatalf("Add4() failed: %v", err)
+	}
+	t.Cleanup(func() {
+		if err := Del4(iface, addr, mask); err != nil {
+			t.Errorf("cleanup: Del4() failed: %v", err)
+		}
+	})
+
+	if !ifaceHasAddr(t, iface, addr) {
+		t.Fatalf("%s is not present on %s after Add4()", addr, iface)
+	}
+
+	if err := Del4(iface, addr, mask); err != nil {
+		t.Fatalf("Del4() failed: %v", err)
+	}
+	if ifaceHasAddr(t, iface, addr) {
+		t.Fatalf("%s is still present on %s after Del4()", addr, iface)
+	}
+
+	if err := Del4(iface, addr, mask); err != nil {
+		t.Errorf("second Del4() should be idempotent, got: %v", err)
+	}
+}
+
+func ifaceHasAddr(t *testing.T, iface string, want net.IP) bool {
+	t.Helper()
+
+	ifi, err := net.InterfaceByName(iface)
+	if err != nil {
+		t.Fatalf("InterfaceByName(%s): %v", iface, err)
+	}
+	addrs, err := ifi.Addrs()
+	if err != nil {
+		t.Fatalf("Addrs(%s): %v", iface, err)
+	}
+	for _, a := range addrs {
+		ipnet, ok := a.(*net.IPNet)
+		if !ok {
+			continue
+		}
+		if ipnet.IP.Equal(want) {
+			return true
+		}
+	}
+	return false
+}

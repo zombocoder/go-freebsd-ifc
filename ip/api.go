@@ -31,7 +31,9 @@ func Add4(iface string, ip net.IP, mask net.IPMask) error {
 // Del4 removes an IPv4 address from an interface.
 //
 // Returns a validation error if the IP is not IPv4 or the mask is invalid.
-// This operation is idempotent - returns nil if the address doesn't exist.
+// This operation is idempotent: the kernel reports EADDRNOTAVAIL when the
+// interface does not carry the address, and Del4 turns that into nil so that
+// deleting an address that is already gone succeeds.
 func Del4(iface string, ip net.IP, mask net.IPMask) error {
 	if ip.To4() == nil {
 		return isyscall.NewValidationError("ip", ip.String(), "not an IPv4 address")
@@ -65,7 +67,9 @@ func Add6(iface string, ip net.IP, prefixLen int) error {
 // Del6 removes an IPv6 address from an interface.
 //
 // Returns a validation error if the IP is not IPv6 or prefixLen is invalid.
-// This operation is idempotent - returns nil if the address doesn't exist.
+// This operation is idempotent: the kernel reports EADDRNOTAVAIL when the
+// interface does not carry the address, and Del6 turns that into nil so that
+// deleting an address that is already gone succeeds.
 func Del6(iface string, ip net.IP, prefixLen int) error {
 	if ip.To4() != nil {
 		return isyscall.NewValidationError("ip", ip.String(), "not an IPv6 address")

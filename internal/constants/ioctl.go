@@ -73,9 +73,10 @@ const (
 
 // Address families
 const (
-	AF_INET  = C.AF_INET
-	AF_INET6 = C.AF_INET6
-	AF_LINK  = C.AF_LINK
+	AF_UNSPEC = C.AF_UNSPEC
+	AF_INET   = C.AF_INET
+	AF_INET6  = C.AF_INET6
+	AF_LINK   = C.AF_LINK
 )
 
 // Structure sizes

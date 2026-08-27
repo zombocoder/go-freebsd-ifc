@@ -179,6 +179,22 @@ IPv4 and IPv6 routing table management.
 - `AddRoute6(dst, gw, iface)` - Add IPv6 route
 - `DelRoute6(dst, gw, iface)` - Delete IPv6 route
 
+**Listing Functions (no root required):**
+- `List()` - Read the whole routing table
+- `List4()` - Read the IPv4 routing table
+- `List6()` - Read the IPv6 routing table
+
+**Types:**
+- `Route` - One table entry (Family, Dst, Gateway, Index, Iface, Flags)
+- `Family` - `FamilyIPv4` or `FamilyIPv6`, taken from the destination sockaddr
+- `Flags` - RTF_* bitmask with `IsUp`/`IsGateway`/`IsHost`/`IsStatic`
+
+The table is read through the `CTL_NET/PF_ROUTE/NET_RT_DUMP` sysctl, the same
+interface `netstat(1)` uses. `Route.Family` is carried explicitly from the
+kernel rather than inferred from `Dst`, because Go's `net.IP` conflates the two
+families for IPv4-mapped addresses: FreeBSD's IPv6 table really does contain a
+`::ffff:0.0.0.0/96` route, and `net.IPNet.String()` prints it as `0.0.0.0/0`.
+
 **Example:**
 ```go
 // IPv4
@@ -190,7 +206,74 @@ route.AddRoute4(dst, gw, "em0")
 _, dst6, _ := net.ParseCIDR("2001:db8::/32")
 gw6 := net.ParseIP("fe80::1")
 route.AddRoute6(dst6, gw6, "em0")
+
+// Read the table back, e.g. to reconcile against it
+routes, _ := route.List()
+for _, r := range routes {
+    fmt.Println(r) // 0.0.0.0/0 via 192.168.64.1 dev em0 flags 0x803
+}
 ```
+
+### 10. **vxlan** - VXLAN Overlay Management
+VXLAN (RFC 7348) overlay interface management, backed by the vxlan(4) driver.
+
+Requires the driver: `doas kldload if_vxlan`.
+
+**Functions:**
+- `Create()` - Create VXLAN interface
+- `Destroy(name)` - Destroy VXLAN interface
+- `Configure(name, params)` - Apply VNI, endpoints, ports, TTL, learning, table limits
+- `Get(name)` - Get the kernel's view of the interface
+- `Up(name, up)` - Bring the interface up/down
+- `PeerAdd(name, mac, remote, port)` - Add a static forwarding table entry
+- `PeerDel(name, mac)` - Remove a static forwarding table entry
+- `Peers(name)` - List the forwarding table
+- `FlushPeers(name, includeStatic)` - Flush learned (and optionally static) entries
+- `Overhead(name)` - Encapsulation overhead the kernel accounts for
+
+**Types:**
+- `Params` - Configuration to apply (VNI, Local, Remote, Dev, ports, port range, TTL, Learn, table limits)
+- `Config` - Kernel state (VNI, endpoints, multicast, port range, TTL, learning, peer counts, MTU, Up, Running)
+- `Peer` - Forwarding table entry (MAC, Remote, Static, Expire)
+
+**Constants:**
+- `VNIMax` (1<<24), `DefaultPort` (4789), `LegacyPort` (8472)
+- `OverheadIPv4` (50), `OverheadIPv6` (70)
+
+**Example:**
+```go
+name, _ := vxlan.Create()
+defer vxlan.Destroy(name)
+
+vxlan.Configure(name, vxlan.Params{
+    VNI:    100,
+    Local:  net.ParseIP("192.0.2.1"),
+    Remote: net.ParseIP("192.0.2.2"),
+})
+vxlan.Up(name, true)
+
+mac, _ := net.ParseMAC("02:11:22:33:44:55")
+vxlan.PeerAdd(name, mac, net.ParseIP("192.0.2.3"), 0)
+```
+
+**Peers.** FreeBSD has no VXLAN peer list. What it has is a per-interface
+forwarding table mapping a remote MAC address to the VTEP that owns it, the
+same structure MAC learning populates. `PeerAdd`/`PeerDel` issue
+`VXLAN_CMD_FTABLE_ENTRY_ADD`/`_REM`; `ifconfig(8)` exposes no command for
+either, so these are reachable only through the ioctl. An entry must use the
+same address family as the interface's configured remote address.
+
+**Ordering.** The kernel only accepts configuration while the interface is
+down (`vxlan_can_change_config()`); every `VXLAN_CMD_SET_*` returns `EBUSY`
+once `IFF_DRV_RUNNING` is set. `Up` does not report a rejected configuration
+either: `vxlan_init()` is `void`, so `IFF_UP` is set regardless and the
+interface simply never becomes `RUNNING`. Check `Get().Running`.
+
+**MTU.** VXLAN adds 50 bytes over IPv4 (14 outer Ethernet + 20 IP + 8 UDP +
+8 VXLAN) and 70 over IPv6. That is the kernel's own accounting from
+`vxlan_setup_interface_hdrlen()`, which then derives the default MTU as
+`ETHERMTU - if_hdrlen`, i.e. 1450 over IPv4. `Overhead()` reads the live
+`if_data.ifi_hdrlen` back rather than recomputing it.
 
 ## Internal Packages
 
@@ -202,6 +285,7 @@ Implementation details hidden from users:
 - **internal/bridgeops** - Bridge operations
 - **internal/cloneops** - Clone interface operations
 - **internal/vlanops** - VLAN operations
+- **internal/vxlanops** - VXLAN operations
 - **internal/laggops** - LAGG operations
 - **internal/ipaddr** - IP address operations
 - **internal/routing** - Routing operations
@@ -215,6 +299,7 @@ Comprehensive error types:
 - `ErrExists` - Resource already exists
 - `ErrInvalidArgument` - Invalid argument
 - `ErrBusy` - Resource busy
+- `ErrAddressNotAvailable` - Address not assigned to the interface (EADDRNOTAVAIL)
 - `ValidationError` - Input validation error
 - `OperationError` - Operation-specific error
 
@@ -225,20 +310,21 @@ Comprehensive error types:
 
 ## Example Programs
 
-12 comprehensive example programs:
+13 comprehensive example programs:
 
 1. **list** - List all network interfaces
 2. **list-vlans** - List VLAN interfaces
 3. **iface-config** - Interface configuration tool (MTU, up/down, promisc, rename)
 4. **ifstats** - Interface statistics viewer (show/list/watch with real-time updates)
 5. **vlan-demo** - VLAN management CLI
-6. **tap-tun-demo** - TAP/TUN management CLI
-7. **lagg-demo** - LAGG management CLI
-8. **ipv6-routing** - IPv6 routing CLI
-9. **comprehensive-demo** - All features demonstration
-10. **net-bridge-up** - Bridge + epair setup
-11. **ip-addr** - IP address management
-12. **route-default** - IPv4 routing management
+6. **vxlan-demo** - VXLAN overlay and peer management CLI
+7. **tap-tun-demo** - TAP/TUN management CLI
+8. **lagg-demo** - LAGG management CLI
+9. **ipv6-routing** - IPv6 routing CLI
+10. **comprehensive-demo** - All features demonstration
+11. **net-bridge-up** - Bridge + epair setup
+12. **ip-addr** - IP address management
+13. **route-default** - IPv4 routing management
 
 ## Key Features
 
