@@ -309,15 +309,19 @@ ip.Add6("em0", ip6, 64)
 import "github.com/zombocoder/go-freebsd-ifc/route"
 ```
 
-| Function                                                   | Description          | Root Required |
-| ---------------------------------------------------------- | -------------------- | ------------- |
-| `AddDefault4(iface string, gw net.IP) error`               | Add default route    | Yes           |
-| `DelDefault4(iface string, gw net.IP) error`               | Delete default route | Yes           |
-| `AddRoute4(dst *net.IPNet, gw net.IP, iface string) error` | Add route            | Yes           |
-| `DelRoute4(dst *net.IPNet, gw net.IP, iface string) error` | Delete route         | Yes           |
-| `List() ([]Route, error)`                                  | Read the whole table | No            |
-| `List4() ([]Route, error)`                                 | Read the IPv4 table  | No            |
-| `List6() ([]Route, error)`                                 | Read the IPv6 table  | No            |
+| Function                                                   | Description               | Root Required |
+| ---------------------------------------------------------- | ------------------------- | ------------- |
+| `AddDefault4(iface string, gw net.IP) error`               | Add IPv4 default route    | Yes           |
+| `DelDefault4(iface string, gw net.IP) error`               | Delete IPv4 default route | Yes           |
+| `AddRoute4(dst *net.IPNet, gw net.IP, iface string) error` | Add IPv4 route            | Yes           |
+| `DelRoute4(dst *net.IPNet, gw net.IP, iface string) error` | Delete IPv4 route         | Yes           |
+| `AddDefault6(iface string, gw net.IP) error`               | Add IPv6 default route    | Yes           |
+| `DelDefault6(iface string, gw net.IP) error`               | Delete IPv6 default route | Yes           |
+| `AddRoute6(dst *net.IPNet, gw net.IP, iface string) error` | Add IPv6 route            | Yes           |
+| `DelRoute6(dst *net.IPNet, gw net.IP, iface string) error` | Delete IPv6 route         | Yes           |
+| `List() ([]Route, error)`                                  | Read the whole table      | No            |
+| `List4() ([]Route, error)`                                 | Read the IPv4 table       | No            |
+| `List6() ([]Route, error)`                                 | Read the IPv6 table       | No            |
 
 **Example:**
 
