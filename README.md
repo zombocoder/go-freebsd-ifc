@@ -156,14 +156,7 @@ import "github.com/zombocoder/go-freebsd-ifc/bridge"
 | `DelMember(bridge, member string) error`   | Remove member interface | Yes           |
 | `Members(bridge string) ([]string, error)` | List members            | No            |
 | `Get(bridge string) (Info, error)`         | Get bridge info         | No            |
-| `AddRoute4(dst *net.IPNet, gw net.IP, iface string) error` | Add route            | Yes           |
-| `DelRoute4(dst *net.IPNet, gw net.IP, iface string) error` | Delete route         | Yes           |
-| `List() ([]Route, error)`                                  | Read the whole table | No            |
-| `List4() ([]Route, error)`                                 | Read the IPv4 table  | No            |
-| `List6() ([]Route, error)`                                 | Read the IPv6 table  | No            |
-| `List() ([]Route, error)`                                  | Read the whole table | No            |
-| `List4() ([]Route, error)`                                 | Read the IPv4 table  | No            |
-| `List6() ([]Route, error)`                                 | Read the IPv6 table  | No            |
+
 
 **Example:**
 
