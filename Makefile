@@ -14,7 +14,7 @@ BUILD_FLAGS=-v
 TEST_FLAGS=-v
 
 # Example binaries (only those with main.go)
-EXAMPLES=examples/list examples/list-vlans examples/vlan-demo examples/tap-tun-demo examples/lagg-demo examples/ipv6-routing examples/iface-config examples/ifstats examples/comprehensive-demo examples/net-bridge-up examples/ip-addr examples/route-default
+EXAMPLES=examples/list examples/list-vlans examples/vlan-demo examples/vxlan-demo examples/tap-tun-demo examples/lagg-demo examples/ipv6-routing examples/iface-config examples/ifstats examples/comprehensive-demo examples/net-bridge-up examples/ip-addr examples/route-default
 EXAMPLE_BINS=$(EXAMPLES:%=%/main)
 
 
@@ -111,6 +111,7 @@ docs-view: ## View package documentation (using go doc)
 	@echo "  go doc ./bridge"
 	@echo "  go doc ./epair"
 	@echo "  go doc ./vlan"
+	@echo "  go doc ./vxlan"
 	@echo "  go doc ./ip"
 	@echo "  go doc ./route"
 
@@ -140,6 +141,7 @@ list-examples: ## List all example programs
 	@echo "  examples/iface-config       - Interface configuration tool (show/mtu/up/down/promisc)"
 	@echo "  examples/ifstats            - Interface statistics viewer (show/list/watch)"
 	@echo "  examples/vlan-demo          - VLAN management demo (requires root)"
+	@echo "  examples/vxlan-demo         - VXLAN overlay + peer management (requires root)"
 	@echo "  examples/tap-tun-demo       - TAP/TUN management demo (requires root)"
 	@echo "  examples/lagg-demo          - LAGG link aggregation demo (requires root)"
 	@echo "  examples/ipv6-routing       - IPv6 routing management (requires root)"
@@ -156,6 +158,8 @@ list-examples: ## List all example programs
 	@echo "  go run examples/list-vlans/main.go"
 	@echo "  go run examples/vlan-demo/main.go list"
 	@echo "  doas go run examples/vlan-demo/main.go create 100 em0"
+	@echo "  go run examples/vxlan-demo/main.go list"
+	@echo "  doas go run examples/vxlan-demo/main.go create 100 192.0.2.1 192.0.2.2"
 	@echo "  go run examples/tap-tun-demo/main.go list"
 	@echo "  doas go run examples/tap-tun-demo/main.go create-tap"
 	@echo "  go run examples/lagg-demo/main.go list"
@@ -171,6 +175,7 @@ packages: ## List all packages
 	@echo "  bridge  - Bridge management"
 	@echo "  epair   - Epair management"
 	@echo "  vlan    - VLAN management"
+	@echo "  vxlan   - VXLAN overlay management"
 	@echo "  lagg    - Link aggregation (LAGG) management"
 	@echo "  tap     - TAP interface management"
 	@echo "  tun     - TUN interface management"
@@ -184,6 +189,7 @@ packages: ## List all packages
 	@echo "  internal/bridgeops - Bridge operations"
 	@echo "  internal/cloneops  - Clone interface ops"
 	@echo "  internal/vlanops   - VLAN operations"
+	@echo "  internal/vxlanops  - VXLAN operations"
 	@echo "  internal/laggops   - LAGG operations"
 	@echo "  internal/ipaddr    - IP address ops"
 	@echo "  internal/routing   - Routing ops"

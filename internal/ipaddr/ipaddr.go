@@ -82,8 +82,11 @@ func Del4(iface string, ip net.IP, mask net.IPMask) error {
 	addr.sin_len = constants.SizeofSockaddrIn
 	isyscall.CopyBytes(unsafe.Pointer(&addr.sin_addr), unsafe.Pointer(&ip[0]), 4)
 
+	// SIOCDIFADDR answers EADDRNOTAVAIL when the interface exists but does
+	// not carry the address (sys/netinet/in.c, in_control_ioctl). Del4 is
+	// documented as idempotent, so that is success, not a failure.
 	err = isyscall.Ioctl(s.Int(), constants.SIOCDIFADDR, unsafe.Pointer(&req))
-	if err != nil && err == isyscall.ErrNotFound {
+	if err != nil && (err == isyscall.ErrNotFound || err == isyscall.ErrAddressNotAvailable) {
 		return nil // Idempotent
 	}
 	return err
@@ -146,8 +149,10 @@ func Del6(iface string, ip net.IP, prefixLen int) error {
 	addr.sin6_len = constants.SizeofSockaddrIn6
 	isyscall.CopyBytes(unsafe.Pointer(&addr.sin6_addr), unsafe.Pointer(&ip[0]), 16)
 
+	// As for Del4: EADDRNOTAVAIL means the address was already absent,
+	// which is the documented idempotent outcome.
 	err = isyscall.Ioctl(s.Int(), constants.SIOCDIFADDR_IN6, unsafe.Pointer(&req))
-	if err != nil && err == isyscall.ErrNotFound {
+	if err != nil && (err == isyscall.ErrNotFound || err == isyscall.ErrAddressNotAvailable) {
 		return nil // Idempotent
 	}
 	return err

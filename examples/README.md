@@ -94,6 +94,41 @@ doas go run examples/vlan-demo/main.go destroy vlan0
 - Parent interface assignment
 - VLAN status management
 
+#### 5a. VXLAN Overlay Management
+RFC 7348 overlay interfaces, including static peers.
+
+Requires the driver: `doas kldload if_vxlan`.
+
+```bash
+# List all VXLAN interfaces
+go run examples/vxlan-demo/main.go list
+
+# Create, configure and bring up an overlay
+doas go run examples/vxlan-demo/main.go create 100 192.0.2.1 192.0.2.2
+
+# Show one interface, including the encapsulation overhead
+go run examples/vxlan-demo/main.go show vxlan0
+
+# Add and inspect a static peer (a forwarding table entry)
+doas go run examples/vxlan-demo/main.go peer-add vxlan0 02:11:22:33:44:55 192.0.2.3
+go run examples/vxlan-demo/main.go peers vxlan0
+doas go run examples/vxlan-demo/main.go peer-del vxlan0 02:11:22:33:44:55
+
+# Flush learned entries, or everything
+doas go run examples/vxlan-demo/main.go flush vxlan0
+doas go run examples/vxlan-demo/main.go flush vxlan0 all
+
+# Destroy
+doas go run examples/vxlan-demo/main.go destroy vxlan0
+```
+
+**Features demonstrated:**
+- VXLAN creation with automatic interface naming
+- VNI, local/remote endpoints and UDP ports
+- Static peers via the forwarding table, which ifconfig(8) cannot manage
+- Encapsulation overhead read from the kernel's own if_hdrlen
+- The UP-but-not-RUNNING state a rejected configuration leaves behind
+
 #### 4. TAP/TUN Management
 Layer 2 (TAP) and Layer 3 (TUN) virtual interface management.
 

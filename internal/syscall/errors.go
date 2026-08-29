@@ -27,6 +27,8 @@ func mapErrno(err syscall.Errno) error {
 		return ErrNetworkDown
 	case syscall.EADDRINUSE:
 		return ErrAddressInUse
+	case syscall.EADDRNOTAVAIL:
+		return ErrAddressNotAvailable
 	default:
 		return fmt.Errorf("%w: %v", ErrSyscall, err)
 	}
