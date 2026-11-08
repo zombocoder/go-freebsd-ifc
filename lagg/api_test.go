@@ -5,8 +5,11 @@ package lagg
 
 import (
 	"os"
+	"os/exec"
 	"strings"
 	"testing"
+
+	"github.com/zombocoder/go-freebsd-ifc/epair"
 )
 
 func skipIfNotRoot(t *testing.T) {
@@ -65,7 +68,90 @@ func TestSetProto(t *testing.T) {
 	for _, proto := range protocols {
 		if err := SetProto(name, proto); err != nil {
 			t.Errorf("SetProto(%s) failed: %v", proto.String(), err)
+			continue
 		}
+		// ifconfig is the independent source of truth for what the
+		// kernel actually applied.
+		if got := ifconfigLaggProto(t, name); got != proto.String() {
+			t.Errorf("after SetProto(%s), ifconfig reports laggproto %q", proto, got)
+		}
+		info, err := Get(name)
+		if err != nil {
+			t.Fatalf("Get() failed: %v", err)
+		}
+		if info.Proto != proto {
+			t.Errorf("after SetProto(%s), Get().Proto = %s", proto, info.Proto)
+		}
+	}
+}
+
+// ifconfigLaggProto returns the protocol ifconfig(8) reports for a lagg.
+func ifconfigLaggProto(t *testing.T, name string) string {
+	t.Helper()
+	out, err := exec.Command("ifconfig", name).CombinedOutput()
+	if err != nil {
+		t.Fatalf("ifconfig %s: %v: %s", name, err, out)
+	}
+	for _, line := range strings.Split(string(out), "\n") {
+		fields := strings.Fields(line)
+		if len(fields) >= 2 && fields[0] == "laggproto" {
+			return fields[1]
+		}
+	}
+	t.Fatalf("no laggproto in ifconfig %s output:\n%s", name, out)
+	return ""
+}
+
+// TestPorts adds and removes lagg ports and checks them with Get and ifconfig.
+func TestPorts(t *testing.T) {
+	skipIfNotRoot(t)
+	skipIfNotE2E(t)
+
+	name, err := Create()
+	if err != nil {
+		t.Fatalf("Create() failed: %v", err)
+	}
+	defer Destroy(name)
+
+	var ports []string
+	for i := 0; i < 2; i++ {
+		pair, err := epair.Create()
+		if err != nil {
+			t.Fatalf("epair.Create: %v", err)
+		}
+		defer epair.Destroy(pair.A)
+		ports = append(ports, pair.A)
+	}
+
+	for _, p := range ports {
+		if err := AddPort(name, p); err != nil {
+			t.Fatalf("AddPort(%s, %s) failed: %v", name, p, err)
+		}
+	}
+
+	info, err := Get(name)
+	if err != nil {
+		t.Fatalf("Get() failed: %v", err)
+	}
+	if len(info.Ports) != len(ports) {
+		t.Fatalf("Get().Ports = %v, want %v", info.Ports, ports)
+	}
+	for _, p := range ports {
+		out, _ := exec.Command("ifconfig", name).CombinedOutput()
+		if !strings.Contains(string(out), "laggport: "+p) {
+			t.Errorf("ifconfig does not list %s as laggport:\n%s", p, out)
+		}
+	}
+
+	if err := DelPort(name, ports[0]); err != nil {
+		t.Fatalf("DelPort(%s, %s) failed: %v", name, ports[0], err)
+	}
+	info, err = Get(name)
+	if err != nil {
+		t.Fatalf("Get() failed: %v", err)
+	}
+	if len(info.Ports) != 1 || info.Ports[0] != ports[1] {
+		t.Errorf("after DelPort, Get().Ports = %v, want [%s]", info.Ports, ports[1])
 	}
 }
 

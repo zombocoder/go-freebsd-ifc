@@ -15,12 +15,13 @@ import (
 // Proto represents a LAGG protocol
 type Proto int
 
+// Values are the kernel's enum lagg_proto (net/if_lagg.h).
 const (
-	ProtoFailover    Proto = 1 // Failover: primary/backup mode
-	ProtoLoadBalance Proto = 2 // LoadBalance: hash-based distribution
-	ProtoLACP        Proto = 3 // LACP: IEEE 802.3ad
-	ProtoRoundRobin  Proto = 4 // RoundRobin: sequential distribution
-	ProtoBroadcast   Proto = 5 // Broadcast: replicate to all ports
+	ProtoFailover    Proto = laggops.ProtoFailover    // Failover: primary/backup mode
+	ProtoLoadBalance Proto = laggops.ProtoLoadBalance // LoadBalance: hash-based distribution
+	ProtoLACP        Proto = laggops.ProtoLACP        // LACP: IEEE 802.3ad
+	ProtoRoundRobin  Proto = laggops.ProtoRoundRobin  // RoundRobin: sequential distribution
+	ProtoBroadcast   Proto = laggops.ProtoBroadcast   // Broadcast: replicate to all ports
 )
 
 // String returns the protocol name

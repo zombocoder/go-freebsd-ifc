@@ -1,13 +1,18 @@
 # go-freebsd-ifc
 
+[![CI](https://github.com/zombocoder/go-freebsd-ifc/actions/workflows/ci.yml/badge.svg)](https://github.com/zombocoder/go-freebsd-ifc/actions/workflows/ci.yml)
 [![Go Reference](https://pkg.go.dev/badge/github.com/zombocoder/go-freebsd-ifc.svg)](https://pkg.go.dev/github.com/zombocoder/go-freebsd-ifc)
-[![FreeBSD](https://img.shields.io/badge/platform-FreeBSD-red.svg)](https://www.freebsd.org/)
-[![Go Version](https://img.shields.io/badge/go-%3E%3D1.19-blue.svg)](https://golang.org/)
-[![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+[![Go Report Card](https://goreportcard.com/badge/github.com/zombocoder/go-freebsd-ifc)](https://goreportcard.com/report/github.com/zombocoder/go-freebsd-ifc)
+[![Release](https://img.shields.io/github/v/release/zombocoder/go-freebsd-ifc?sort=semver)](https://github.com/zombocoder/go-freebsd-ifc/releases)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Go Version](https://img.shields.io/badge/Go-%3E%3D1.22-00ADD8.svg)](https://golang.org/)
+[![FreeBSD](https://img.shields.io/badge/FreeBSD-14%20%7C%2015-red.svg)](https://www.freebsd.org/)
 
 FreeBSD network interface control library for Go with native cgo bindings.
 
-**Latest Release:** v1.0.0
+**Tested in CI on:** FreeBSD 14.5 and 15.1 (amd64), with the full e2e suite
+running as root in QEMU VMs. See the [changelog](CHANGELOG.md) and
+[releases](https://github.com/zombocoder/go-freebsd-ifc/releases).
 
 ## Features
 
@@ -16,6 +21,7 @@ FreeBSD network interface control library for Go with native cgo bindings.
   - Set MTU, bring up/down, rename interfaces
   - Enable/disable promiscuous mode
   - Get interface statistics (packets, bytes, errors, drops)
+- **VNET** - Move interfaces into and out of vnet jails (`ifconfig <if> vnet <jail>`)
 - **Bridge Support** - Create and manage bridge(4) interfaces with member management
 - **Epair Support** - Create paired virtual Ethernet interfaces for jails/VMs
 - **VLAN Support** - Configure 802.1Q VLAN interfaces (tags 1-4094)
@@ -37,8 +43,8 @@ go get github.com/zombocoder/go-freebsd-ifc
 
 ## Requirements
 
-- **OS**: FreeBSD 12.x or later (tested on 14.x)
-- **Go**: 1.19 or later
+- **OS**: FreeBSD 14 or 15 (tested in CI on 14.5 and 15.1)
+- **Go**: 1.22 or later
 - **Privileges**: Root required for most write operations
 - **Build**: C compiler for cgo (comes with FreeBSD base system)
 
@@ -126,6 +132,8 @@ import ifc "github.com/zombocoder/go-freebsd-ifc/if"
 | `SetUp(name string, up bool) error`    | Bring interface up/down | Yes           |
 | `SetMTU(name string, mtu int) error`   | Set interface MTU       | Yes           |
 | `Rename(old, new string) error`        | Rename interface        | Yes           |
+| `MoveToVNET(name string, jid int) error` | Move interface into a vnet jail | Yes |
+| `ReclaimFromVNET(name string, jid int) error` | Move interface back from a vnet jail | Yes |
 
 **Example:**
 
@@ -442,7 +450,7 @@ make examples
 make test
 
 # Run integration tests (requires root)
-sudo make test-e2e
+doas make test-e2e
 ```
 
 ## Architecture
@@ -510,16 +518,15 @@ See [examples/README.md](examples/README.md) for detailed documentation.
 
 ## Contributing
 
-Contributions welcome! Please:
-
-1. Follow Go best practices
-2. Add tests for new functionality
-3. Update documentation
-4. Ensure FreeBSD compatibility (13/14/15)
+Contributions are welcome — see [CONTRIBUTING.md](CONTRIBUTING.md) for how to
+run the tests, what CI checks, and where help is wanted. Please follow the
+[Code of Conduct](CODE_OF_CONDUCT.md) and report security issues privately as
+described in [SECURITY.md](SECURITY.md).
 
 ## Documentation
 
 - **[FEATURES.md](FEATURES.md)** - Comprehensive feature list
+- **[CHANGELOG.md](CHANGELOG.md)** - Release history
 - **[examples/README.md](examples/README.md)** - Examples documentation
 
 ## License
@@ -530,7 +537,7 @@ MIT License - see [LICENSE](LICENSE) file for details.
 
 Developed by zombocoder for FreeBSD network automation.
 
-**Version:** 1.0.0 | **Status:** Stable | **Tested:** FreeBSD 14.x
+**Status:** Stable (1.x) | **Tested:** FreeBSD 14.5 and 15.1 in CI
 
 ## See Also
 
