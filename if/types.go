@@ -43,8 +43,14 @@ func (f InterfaceFlags) IsLoopback() bool { return f&FlagLoopback != 0 }
 
 // Re-export common errors from internal package
 var (
-	ErrPermission = syscall.ErrPermission
-	ErrNotFound   = syscall.ErrNotFound
-	ErrExists     = syscall.ErrExists
-	ErrSyscall    = syscall.ErrSyscall
+	ErrPermission          = syscall.ErrPermission
+	ErrNotFound            = syscall.ErrNotFound
+	ErrExists              = syscall.ErrExists
+	ErrInvalidArgument     = syscall.ErrInvalidArgument     // EINVAL
+	ErrBusy                = syscall.ErrBusy                // EBUSY
+	ErrNotSupported        = syscall.ErrNotSupported        // EOPNOTSUPP
+	ErrNetworkDown         = syscall.ErrNetworkDown         // ENETDOWN
+	ErrAddressInUse        = syscall.ErrAddressInUse        // EADDRINUSE
+	ErrAddressNotAvailable = syscall.ErrAddressNotAvailable // EADDRNOTAVAIL
+	ErrSyscall             = syscall.ErrSyscall
 )

@@ -23,8 +23,9 @@ import (
 //
 // If the kernel does not know the cloner (SIOCIFCREATE fails with EINVAL,
 // which is what happens when e.g. if_epair.ko is not loaded), the matching
-// if_<driver> module is loaded and the create is retried once. This mirrors
-// what ifconfig(8) does in ifmaybeload().
+// if_<driver> module is loaded and the create is retried once, also when the
+// module turns out to be loaded already (e.g. by a concurrent Create). This
+// mirrors what ifconfig(8) does in ifmaybeload().
 func Create(prefix string) (string, error) {
 	name, err := create(prefix)
 	if err == nil || !errors.Is(err, isyscall.ErrInvalidArgument) {
@@ -36,12 +37,14 @@ func Create(prefix string) (string, error) {
 		// Never hand anything path-like to kldload(2).
 		return "", err
 	}
-	loaded, kerr := isyscall.LoadKernelModule("if_" + drv)
-	if kerr != nil || !loaded {
-		// Module missing, already loaded, or no privilege to load it:
-		// the original EINVAL is the meaningful error.
+	if _, kerr := isyscall.LoadKernelModule("if_" + drv); kerr != nil {
+		// Module missing or no privilege to load it: the original EINVAL
+		// is the meaningful error.
 		return "", err
 	}
+	// Loaded now, or already present: a concurrent first-time create may
+	// have loaded the module between our failed create and our kldload
+	// (which then reports EEXIST). Either way the cloner may exist now.
 	return create(prefix)
 }
 

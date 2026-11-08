@@ -12,6 +12,18 @@ follows [Semantic Versioning](https://semver.org/).
   interface by exact name (e.g. `wg0`), loading `if_<driver>` when needed.
   `clone.Create` accepts only names that start with a letter and contain
   letters, digits, `_`, `.` and `-`.
+- `ifc.ErrInvalidArgument`, `ifc.ErrBusy`, `ifc.ErrNotSupported`,
+  `ifc.ErrNetworkDown`, `ifc.ErrAddressInUse` and `ifc.ErrAddressNotAvailable`
+  are re-exported from the internal error package (they were already
+  documented as part of the error API but could not be referenced).
+
+### Fixed
+
+- Module autoload on concurrent first-time creates: when another caller loaded
+  `if_<driver>` between this caller's failed create and its kldload(2), the
+  kldload reported EEXIST and the create failed with the original EINVAL
+  instead of being retried. The create is now retried whenever the module is
+  loaded or already present.
 
 ### Security
 
