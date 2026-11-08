@@ -28,6 +28,7 @@ running as root in QEMU VMs. See the [changelog](CHANGELOG.md) and
 - **VXLAN Support** - RFC 7348 overlays: VNI, endpoints, ports, and static peers via the forwarding table
 - **LAGG Support** - Link aggregation with LACP, failover, loadbalance, roundrobin, broadcast
 - **TAP/TUN Support** - Layer 2 (TAP) and Layer 3 (TUN) virtual interfaces for VPNs
+- **Clone** - Create and destroy any cloned interface by exact name (e.g. `wg0`), loading `if_<driver>` when needed
 - **IP Management** - Add/remove IPv4 and IPv6 addresses with full dual-stack support
 - **Routing** - Manage IPv4 and IPv6 routing table entries (default routes, static routes) and read the table back
 - **Idempotent** - Safe to call operations multiple times

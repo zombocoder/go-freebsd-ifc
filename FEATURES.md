@@ -131,6 +131,13 @@ tap0, _ := tap.Create()
 tap.Up(tap0, true)
 ```
 
+### 6b. **clone** - Generic Cloned Interface Management
+Create and destroy any cloned interface by exact name.
+
+**Functions:**
+- `Create(name)` - Create `wg0` (or bare `wg` for kernel-assigned unit), loading `if_<driver>` if needed
+- `Destroy(name)` - Destroy the interface
+
 ### 7. **tun** - TUN Interface Management
 Layer 3 (IP) virtual interfaces.
 

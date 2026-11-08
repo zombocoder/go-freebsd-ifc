@@ -6,6 +6,33 @@ follows [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+
+- `clone.Create(name)` / `clone.Destroy(name)`: create and destroy any cloned
+  interface by exact name (e.g. `wg0`), loading `if_<driver>` when needed.
+  `clone.Create` accepts only names that start with a letter and contain
+  letters, digits, `_`, `.` and `-`.
+- `ifc.ErrInvalidArgument`, `ifc.ErrBusy`, `ifc.ErrNotSupported`,
+  `ifc.ErrNetworkDown`, `ifc.ErrAddressInUse` and `ifc.ErrAddressNotAvailable`
+  are re-exported from the internal error package (they were already
+  documented as part of the error API but could not be referenced).
+
+### Fixed
+
+- Module autoload on concurrent first-time creates: when another caller loaded
+  `if_<driver>` between this caller's failed create and its kldload(2), the
+  kldload reported EEXIST and the create failed with the original EINVAL
+  instead of being retried. The create is now retried whenever the module is
+  loaded or already present.
+
+### Security
+
+- Module autoload never passes a path to kldload(2): the driver name must be
+  `[a-z][a-z0-9_]*`, and the internal module loader refuses names containing
+  `/` or NUL. kldload treats a name with `/` as a file path, so an
+  attacker-chosen interface name like `../x` could otherwise load a module
+  from an arbitrary relative path in a privileged process.
+
 ## [1.1.0] - 2026-11-08
 
 ### Added

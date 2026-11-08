@@ -10,6 +10,7 @@ package syscall
 */
 import "C"
 import (
+	"strings"
 	"syscall"
 	"unsafe"
 )
@@ -18,7 +19,14 @@ import (
 //
 // It reports loaded=true only when this call actually loaded the module.
 // A module that is already present is not an error: loaded=false, err=nil.
+//
+// name must be a bare module name. kldload(2) treats a name containing '/' as
+// a file path, so such names (and names containing NUL) are refused with
+// ErrInvalidArgument without calling the kernel.
 func LoadKernelModule(name string) (loaded bool, err error) {
+	if name == "" || strings.ContainsAny(name, "/\x00") {
+		return false, ErrInvalidArgument
+	}
 	cname := C.CString(name)
 	defer C.free(unsafe.Pointer(cname))
 
