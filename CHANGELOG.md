@@ -6,6 +6,11 @@ follows [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+
+- `clone.Create(name)` / `clone.Destroy(name)`: create and destroy any cloned
+  interface by exact name (e.g. `wg0`), loading `if_<driver>` when needed.
+
 ## [1.1.0] - 2026-11-08
 
 ### Added
