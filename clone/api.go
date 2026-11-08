@@ -18,6 +18,8 @@ import (
 // name is either a full name with unit ("wg0") or a bare driver name ("wg"),
 // in which case the kernel picks the unit. If the driver's cloner is not
 // registered, the if_<driver> kernel module is loaded and the create retried.
+// The name must start with a letter and contain only letters, digits, '_',
+// '.' and '-'.
 //
 // If the interface already exists, errors.Is(err, syscall.EEXIST) is true.
 // Requires root privileges.
@@ -29,7 +31,7 @@ import (
 //		log.Fatal(err)
 //	}
 func Create(name string) (string, error) {
-	if err := checkName(name); err != nil {
+	if err := checkCreateName(name); err != nil {
 		return "", fmt.Errorf("clone create %q: %w", name, err)
 	}
 	actual, err := cloneops.Create(name)
@@ -58,6 +60,27 @@ func checkName(name string) error {
 	}
 	if len(name) >= constants.IFNAMSIZ {
 		return fmt.Errorf("interface name too long (max %d characters)", constants.IFNAMSIZ-1)
+	}
+	return nil
+}
+
+// checkCreateName additionally restricts the characters of a name passed to
+// Create. The driver part of the name can end up in kldload(2) as
+// "if_<driver>", and kldload treats a name containing '/' as a file path, so
+// only letters, digits, '_', '.' and '-' are accepted, starting with a letter.
+func checkCreateName(name string) error {
+	if err := checkName(name); err != nil {
+		return err
+	}
+	for i := 0; i < len(name); i++ {
+		c := name[i]
+		letter := c >= 'a' && c <= 'z' || c >= 'A' && c <= 'Z'
+		if i == 0 && !letter {
+			return fmt.Errorf("invalid interface name %q: must start with a letter", name)
+		}
+		if !letter && !(c >= '0' && c <= '9') && c != '_' && c != '.' && c != '-' {
+			return fmt.Errorf("invalid interface name %q: invalid character %q", name, c)
+		}
 	}
 	return nil
 }

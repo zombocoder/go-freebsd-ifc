@@ -118,3 +118,15 @@ func TestNameTooLong(t *testing.T) {
 		t.Fatal("Destroy() with 16-char name succeeded, want error")
 	}
 }
+
+// Names that could turn into a kldload(2) path must be rejected before any
+// syscall, so this runs without root.
+func TestCreateRejectsUnsafeNames(t *testing.T) {
+	for _, name := range []string{"../x", "/tmp/x", "if_/x", "wg\x00", "0wg", ".wg", "wg/0", "wg 0"} {
+		if _, err := Create(name); err == nil {
+			t.Errorf("Create(%q) succeeded, want error", name)
+		} else if !strings.Contains(err.Error(), "invalid interface name") {
+			t.Errorf("Create(%q) = %v, want validation error", name, err)
+		}
+	}
+}

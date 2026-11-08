@@ -31,7 +31,12 @@ func Create(prefix string) (string, error) {
 		return name, err
 	}
 
-	loaded, kerr := isyscall.LoadKernelModule("if_" + driverName(prefix))
+	drv := driverName(prefix)
+	if !isModuleSafeDriver(drv) {
+		// Never hand anything path-like to kldload(2).
+		return "", err
+	}
+	loaded, kerr := isyscall.LoadKernelModule("if_" + drv)
 	if kerr != nil || !loaded {
 		// Module missing, already loaded, or no privilege to load it:
 		// the original EINVAL is the meaningful error.
@@ -63,6 +68,21 @@ func create(prefix string) (string, error) {
 // driverName strips a trailing unit number: "bridge5" -> "bridge".
 func driverName(prefix string) string {
 	return strings.TrimRight(prefix, "0123456789")
+}
+
+// isModuleSafeDriver reports whether drv is a plain driver name ([a-z0-9_],
+// starting with a letter) that can safely become the module name if_<drv>.
+func isModuleSafeDriver(drv string) bool {
+	if drv == "" || drv[0] < 'a' || drv[0] > 'z' {
+		return false
+	}
+	for i := 0; i < len(drv); i++ {
+		c := drv[i]
+		if !(c >= 'a' && c <= 'z') && !(c >= '0' && c <= '9') && c != '_' {
+			return false
+		}
+	}
+	return true
 }
 
 // Destroy destroys a cloned interface

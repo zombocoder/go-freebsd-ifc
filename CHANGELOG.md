@@ -10,6 +10,16 @@ follows [Semantic Versioning](https://semver.org/).
 
 - `clone.Create(name)` / `clone.Destroy(name)`: create and destroy any cloned
   interface by exact name (e.g. `wg0`), loading `if_<driver>` when needed.
+  `clone.Create` accepts only names that start with a letter and contain
+  letters, digits, `_`, `.` and `-`.
+
+### Security
+
+- Module autoload never passes a path to kldload(2): the driver name must be
+  `[a-z][a-z0-9_]*`, and the internal module loader refuses names containing
+  `/` or NUL. kldload treats a name with `/` as a file path, so an
+  attacker-chosen interface name like `../x` could otherwise load a module
+  from an arbitrary relative path in a privileged process.
 
 ## [1.1.0] - 2026-11-08
 
