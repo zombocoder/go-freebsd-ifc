@@ -6,6 +6,8 @@ follows [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-11-08
+
 ### Added
 
 - `clone.Create(name)` / `clone.Destroy(name)`: create and destroy any cloned
@@ -89,7 +91,8 @@ Same code as 1.0.0 (the tag points to the same commit).
   promiscuous mode, statistics), `bridge`, `epair`, `vlan`, `lagg`, `tap`,
   `tun`, IPv4/IPv6 address management and routing.
 
-[Unreleased]: https://github.com/zombocoder/go-freebsd-ifc/compare/v1.1.0...HEAD
+[Unreleased]: https://github.com/zombocoder/go-freebsd-ifc/compare/v1.2.0...HEAD
+[1.2.0]: https://github.com/zombocoder/go-freebsd-ifc/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/zombocoder/go-freebsd-ifc/compare/v1.0.2...v1.1.0
 [1.0.2]: https://github.com/zombocoder/go-freebsd-ifc/compare/v1.0.1...v1.0.2
 [1.0.1]: https://github.com/zombocoder/go-freebsd-ifc/compare/v1.0.0...v1.0.1
