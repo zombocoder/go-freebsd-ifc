@@ -1,0 +1,32 @@
+name: Feature request
+description: Suggest a new interface type, operation or API improvement
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What do you want to do?
+      description: The task you are trying to accomplish and why the current API does not cover it.
+    validations:
+      required: true
+
+  - type: textarea
+    id: cli-equivalent
+    attributes:
+      label: Equivalent ifconfig/route command
+      description: If the feature mirrors a CLI command, which one (e.g. `ifconfig wg0 create`)?
+      render: shell
+
+  - type: textarea
+    id: api
+    attributes:
+      label: Proposed API
+      description: How would you like to call it from Go? Rough sketches are fine.
+      render: go
+
+  - type: checkboxes
+    id: contribute
+    attributes:
+      label: Contribution
+      options:
+        - label: I would like to implement this myself

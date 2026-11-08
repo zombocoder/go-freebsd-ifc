@@ -16,6 +16,8 @@ Core interface management functionality.
 - `SetPromisc(name, enable)` - Enable/disable promiscuous mode
 - `IsPromisc(name)` - Check if interface is in promiscuous mode
 - `GetStats(name)` - Get interface statistics (packets, bytes, errors)
+- `MoveToVNET(name, jid)` - Move interface into a vnet jail (`ifconfig <if> vnet <jail>`)
+- `ReclaimFromVNET(name, jid)` - Move interface back out of a vnet jail
 
 **Types:**
 - `Interface` - Interface information (name, index, MTU, flags, addresses)
@@ -356,7 +358,11 @@ Comprehensive error types:
 
 ## Supported FreeBSD Versions
 
-Tested on FreeBSD 14.x. Should work on FreeBSD 12.x and 13.x with minor adjustments.
+Tested in CI on FreeBSD 14.5 and 15.1 (amd64). FreeBSD 13 and older are not
+tested and may need adjustments.
+
+Creating a cloned interface loads the matching kernel module (`if_epair`,
+`if_bridge`, `if_lagg`, `if_vxlan`, ...) on demand, as `ifconfig` does.
 
 ## Performance Considerations
 

@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Report a security vulnerability
+    url: https://github.com/zombocoder/go-freebsd-ifc/security/advisories/new
+    about: Please report security problems privately, not as a public issue.
+  - name: FreeBSD kernel or ifconfig bugs
+    url: https://bugs.freebsd.org/
+    about: Bugs in the network stack or base utilities themselves belong upstream.

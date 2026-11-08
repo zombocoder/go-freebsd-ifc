@@ -1,424 +1,171 @@
 # Contributing to go-freebsd-ifc
 
-Thank you for your interest in contributing to go-freebsd-ifc! This document provides guidelines and instructions for contributing to the project.
+Thanks for your interest in improving the library! Bug reports, fixes, new
+interface types and operations, tests, examples and documentation are all
+welcome.
+
+By participating you agree to follow the [Code of Conduct](CODE_OF_CONDUCT.md).
+Security problems should be reported privately, see [SECURITY.md](SECURITY.md).
 
 ## Table of Contents
 
-- [Code of Conduct](#code-of-conduct)
 - [Getting Started](#getting-started)
-- [Development Setup](#development-setup)
-- [How to Contribute](#how-to-contribute)
-- [Coding Standards](#coding-standards)
-- [Testing Guidelines](#testing-guidelines)
-- [Commit Messages](#commit-messages)
-- [Pull Request Process](#pull-request-process)
-- [Reporting Bugs](#reporting-bugs)
-- [Feature Requests](#feature-requests)
-
-## Code of Conduct
-
-- Be respectful and inclusive
-- Focus on constructive feedback
-- Help create a positive community environment
-- Follow the FreeBSD community standards
+- [Running Tests](#running-tests)
+- [Writing Tests](#writing-tests)
+- [Continuous Integration](#continuous-integration)
+- [Code Style](#code-style)
+- [Submitting Changes](#submitting-changes)
+- [Architecture Overview](#architecture-overview)
+- [Where Help Is Wanted](#where-help-is-wanted)
 
 ## Getting Started
 
-1. **Fork the repository** on GitHub
-2. **Clone your fork** locally:
-   ```bash
-   git clone https://github.com/YOUR-USERNAME/go-freebsd-ifc.git
-   cd go-freebsd-ifc
-   ```
-3. **Add upstream remote**:
-   ```bash
-   git remote add upstream https://github.com/zombocoder/go-freebsd-ifc.git
-   ```
+### Prerequisites
 
-## Development Setup
+- FreeBSD 14 or 15, amd64 or arm64
+- Go 1.22+ (`pkg install go`)
+- The base system C compiler (cgo); no extra headers are needed
+- Root (or `doas`) for e2e tests and for examples that change interfaces
 
-### Requirements
+A FreeBSD virtual machine is the most comfortable setup: e2e tests create and
+destroy interfaces, add addresses and routes, and create a throwaway vnet jail.
 
-- FreeBSD 12.x or later (tested on 14.x)
-- Go 1.19 or later
-- C compiler (comes with FreeBSD base system)
-- Root/doas access for integration testing
+### Setup
 
-### Build and Test
-
-```bash
-# Build all packages
+```sh
+git clone https://github.com/<your-username>/go-freebsd-ifc.git
+cd go-freebsd-ifc
 make build
-
-# Run unit tests (no root required)
 make test
-
-# Run integration tests (requires root)
-doas make test-e2e
-
-# Run all checks
-make check
-
-# Generate test coverage
-make test-coverage
-doas make test-coverage-e2e
 ```
 
-## How to Contribute
+## Running Tests
 
-### Types of Contributions
+| Command | Runs as | What it covers |
+|---|---|---|
+| `make test` | any user | Unit tests: validation, string mappings, struct layouts checked against the C headers. E2E tests skip themselves. |
+| `doas make test-e2e` | root | Everything above plus tests that create, configure and destroy real interfaces (`IFCLIB_E2E=1`). |
 
-1. **Bug Fixes** - Fix issues in existing code
-2. **New Features** - Add new network interface types or operations
-3. **Documentation** - Improve docs, examples, or comments
-4. **Tests** - Add or improve test coverage
-5. **Performance** - Optimize existing code
+Running a subset works the usual way:
 
-### Contribution Workflow
-
-1. **Create a feature branch**:
-   ```bash
-   git checkout -b feature/my-new-feature
-   ```
-
-2. **Make your changes** following our coding standards
-
-3. **Write tests** for your changes:
-   - Unit tests for validation logic
-   - Integration tests (E2E) for system calls
-
-4. **Run checks**:
-   ```bash
-   make check           # fmt + vet
-   make test            # unit tests
-   doas make test-e2e   # integration tests
-   ```
-
-5. **Commit your changes** with a clear message
-
-6. **Push to your fork**:
-   ```bash
-   git push origin feature/my-new-feature
-   ```
-
-7. **Open a Pull Request** on GitHub
-
-## Coding Standards
-
-### Go Style
-
-- Follow [Effective Go](https://golang.org/doc/effective_go.html)
-- Follow [Go Code Review Comments](https://github.com/golang/go/wiki/CodeReviewComments)
-- Run `go fmt` on all code (or use `make fmt`)
-- Run `go vet` to catch common mistakes (or use `make vet`)
-- Use `staticcheck` for linting (or use `make lint`)
-
-### Code Organization
-
-```
-Public API (top-level packages)
-  ↓
-Internal Implementation (internal/)
-  ↓
-System Calls (cgo in internal/syscall)
+```sh
+doas env IFCLIB_E2E=1 go test -count=1 -run Lagg -v ./lagg
 ```
 
-**Rules:**
-- Public APIs should be clean, documented, and idiomatic Go
-- All cgo code must be in `internal/` packages
-- No code duplication - use internal helpers
-- Consistent error handling across packages
+E2E tests only touch interfaces they create (kernel-assigned names such as
+`epair3a`, `bridge1`), but they run as root and may load kernel modules
+(`if_epair`, `if_bridge`, `if_lagg`, `if_vxlan`, ...). Prefer a VM or a test
+machine over your workstation, and run packages one at a time (`go test -p 1`)
+because some tests observe global state such as the routing table.
 
-### Documentation
+## Writing Tests
 
-- **GoDoc comments** for all exported functions, types, and constants
-- **Package-level documentation** at the top of main package files
-- **Example code** for complex functions
-- **Clear error messages** with context
+- **Test first.** Write a test that fails for the right reason, then the fix.
+- **Compare with the CLI.** Where possible, check results with `ifconfig`,
+  `route` or `netstat` rather than only with the library's own getters, so a
+  wrong ioctl or struct layout cannot hide behind a matching wrong reader
+  (see `lagg/api_test.go`).
+- **Gate e2e tests** with `skipIfNotRoot(t)` and `skipIfNotE2E(t)`.
+- **Never** hardcode or modify existing interfaces (`em0`, `vtnet0`, `lo0` as a
+  target); create what you need and clean it up with `defer` or `t.Cleanup`,
+  so it is removed even when the test fails.
+- Struct layout tests (`*_abi_test.go`) compare Go mirrors of kernel structs
+  with `sizeof`/`offsetof` from the headers; add one when you mirror a struct.
 
-Example:
-```go
-// SetMTU sets the Maximum Transmission Unit (MTU) for the specified interface.
-// The MTU value must be between 68 and 65535 bytes.
-//
-// This operation requires root privileges.
-//
-// Example:
-//
-//	if err := ifc.SetMTU("em0", 9000); err != nil {
-//	    log.Fatal(err)
-//	}
-func SetMTU(name string, mtu int) error {
-    // implementation
-}
-```
+## Continuous Integration
 
-### Error Handling
+[`.github/workflows/ci.yml`](.github/workflows/ci.yml) runs on every push to
+`main` and every pull request:
 
-- Use typed errors from `internal/syscall`
-- Provide context with `OperationError`
-- Support `errors.Is()` and `errors.As()`
-- Validate inputs early
+- **Lint** (Linux): `gofmt` and `go mod tidy -diff`.
+- **FreeBSD 14.5 and 15.1** (QEMU VMs via
+  [vmactions/freebsd-vm](https://github.com/vmactions/freebsd-vm)): installs Go,
+  runs `go vet`, builds all packages and examples, and runs the full test suite
+  as root with `IFCLIB_E2E=1`.
 
-Example:
-```go
-if name == "" {
-    return isyscall.NewValidationError("interface name", "cannot be empty")
-}
+## Code Style
 
-if err := someOperation(); err != nil {
-    return isyscall.NewOperationError("set MTU", name, err)
-}
-```
+### Go
 
-## Testing Guidelines
+- Standard Go conventions; `gofmt` is enforced by CI.
+- Doc comments on all exported identifiers, with a short example for
+  operations that change the system.
+- Wrap errors with context (`fmt.Errorf("add port %s to lagg %s: %w", ...)`) and
+  keep the typed errors (`ErrNotFound`, `ErrPermission`, ...) reachable with
+  `errors.Is`.
+- Validate input (names, tags, addresses) before issuing an ioctl.
 
-### Unit Tests
+### cgo
 
-- Test validation logic
-- Test error conditions
-- No root privileges required
-- Fast and isolated
+- All cgo lives in `internal/`; public packages are plain Go.
+- **Memory**: every `C.CString`/`C.calloc` has a matching `C.free`.
+- **Pointers**: never store a Go pointer inside a struct passed to the kernel
+  (cgo pointer rules); allocate such buffers with `C.calloc`
+  (see `internal/laggops.Get`, `internal/ifops.Rename`).
+- **Request structs**: check in `sbin/ifconfig` how the base system issues the
+  ioctl. Some take a `struct ifreq`, others (lagg, bridge `SIOCSDRVSPEC`) their
+  own struct; getting this wrong usually shows up as `EINVAL` or
+  `EPROTONOSUPPORT`.
+- Take constants from the C headers (`C.LAGG_PROTO_FAILOVER`) instead of
+  hardcoding numbers.
 
-Example:
-```go
-func TestValidation(t *testing.T) {
-    err := someFunc("")
-    if !isyscall.IsValidation(err) {
-        t.Errorf("expected validation error, got %v", err)
-    }
-}
-```
+## Submitting Changes
 
-### Integration Tests (E2E)
+1. Create a branch from `main`.
+2. Make the change with tests; update doc comments, README and examples when
+   the public API changes, and add an entry to [CHANGELOG.md](CHANGELOG.md)
+   under "Unreleased".
+3. Run `make check` and `doas make test-e2e` on FreeBSD.
+4. Open a pull request; the template has a short checklist. CI must be green.
 
-- Test actual system calls
-- Requires root privileges
-- Gated with `IFCLIB_E2E=1`
-- Clean up resources in defer/cleanup
+Commit messages: `type(scope): summary` (e.g. `fix(lagg): pass lagg_reqall
+directly to SIOCSLAGG`), a blank line, then what changed and why. Common types
+are `feat`, `fix`, `docs`, `test`, `refactor`, `ci`, `chore`.
 
-Example:
-```go
-func TestCreateBridge(t *testing.T) {
-    if os.Getenv("IFCLIB_E2E") != "1" {
-        t.Skip("Skipping E2E test (set IFCLIB_E2E=1 to run)")
-    }
-    if os.Geteuid() != 0 {
-        t.Skip("Skipping test: requires root")
-    }
+### Scope
 
-    br, err := bridge.Create()
-    if err != nil {
-        t.Fatalf("Create failed: %v", err)
-    }
-    defer bridge.Destroy(br)
+- The library is FreeBSD-specific by design; cross-platform layers are out of
+  scope.
+- It talks to the kernel directly. Shelling out to `ifconfig`/`route` is only
+  acceptable in tests.
+- Avoid breaking public API changes within 1.x. When one is unavoidable, call it
+  out in the pull request and in the changelog.
 
-    // Test operations
-}
-```
-
-### Test Coverage
-
-- Aim for high coverage of public APIs
-- Test both success and failure paths
-- Include edge cases
-- Document why tests are skipped
-
-## Commit Messages
-
-### Format
+## Architecture Overview
 
 ```
-<type>: <short summary>
-
-<optional detailed description>
-
-<optional footer>
+if/             Interfaces: list, get, MTU, flags, rename, promisc, stats, vnet
+bridge/ epair/  Cloned interface types
+vlan/ vxlan/
+lagg/ tap/ tun/
+ip/             IPv4/IPv6 addresses
+route/          Routing table (routing socket)
+internal/
+  syscall/      Sockets, ioctl, kldload, error mapping
+  constants/    ioctl numbers and flags from the C headers
+  cloneops/     SIOCIFCREATE/SIOCIFDESTROY (+ module autoload)
+  ifops/ ipaddr/ routing/ bridgeops/ vlanops/ vxlanops/ laggops/
+examples/       Example programs
+.github/        CI workflow, issue and PR templates
 ```
 
-### Types
+### Adding an operation
 
-- `feat`: New feature
-- `fix`: Bug fix
-- `docs`: Documentation changes
-- `test`: Test additions or fixes
-- `refactor`: Code refactoring
-- `perf`: Performance improvements
-- `chore`: Build/tooling changes
+1. **Internal op** in the matching `internal/*ops` package: build the request
+   struct as `ifconfig` does and issue the ioctl.
+2. **Public API** in the top-level package: documented, validated, wrapped
+   errors.
+3. **Tests**: unit tests for validation, e2e test that checks the effect with
+   the CLI, and an ABI test if you mirrored a kernel struct in Go.
+4. **Docs**: README / FEATURES, an example if useful, and the changelog.
 
-### Examples
+## Where Help Is Wanted
 
-```
-feat: add VXLAN interface support
+- **WireGuard** (`if_wg`) interface management
+- **GIF/GRE** tunnels
+- **CARP** configuration
+- **Bridge** STP options and member flags
+- **Interface capabilities** (TSO, LRO, checksum offload) get/set
+- **Netlink** (FreeBSD 14+) as an alternative to routing sockets
 
-Implements VXLAN (Virtual Extensible LAN) interface creation and
-configuration. Adds vxlan package with Create, Destroy, and Configure
-functions.
-
-Closes #123
-```
-
-```
-fix: handle EEXIST in bridge member addition
-
-Bridge.AddMember now returns nil when member already exists,
-making the operation idempotent as documented.
-
-Fixes #456
-```
-
-## Pull Request Process
-
-1. **Ensure all tests pass**:
-   ```bash
-   make test
-   doas make test-e2e
-   ```
-
-2. **Update documentation** if needed:
-   - README.md for API changes
-   - FEATURES.md for new features
-   - examples/ for new functionality
-   - GoDoc comments
-
-3. **Add entry to CHANGELOG.md** under "Unreleased"
-
-4. **Fill out PR template** with:
-   - Description of changes
-   - Related issue numbers
-   - Testing performed
-   - FreeBSD version tested on
-
-5. **Request review** from maintainers
-
-6. **Address review feedback** promptly
-
-7. **Squash commits** if requested
-
-### PR Checklist
-
-- [ ] Tests pass locally
-- [ ] Code follows style guidelines
-- [ ] Documentation updated
-- [ ] CHANGELOG.md updated
-- [ ] Commit messages are clear
-- [ ] No unnecessary files included
-
-## Reporting Bugs
-
-### Before Reporting
-
-- Check existing issues
-- Verify on latest version
-- Test on clean FreeBSD installation
-
-### Bug Report Template
-
-```markdown
-**Environment:**
-- FreeBSD version: (e.g., 14.1-RELEASE)
-- Go version: (e.g., 1.21.0)
-- Library version: (e.g., v1.0.0)
-
-**Description:**
-Clear description of the bug
-
-**Steps to Reproduce:**
-1. Step one
-2. Step two
-3. Step three
-
-**Expected Behavior:**
-What should happen
-
-**Actual Behavior:**
-What actually happens
-
-**Code Sample:**
-```go
-// Minimal code to reproduce
-```
-
-**Error Output:**
-```
-Error messages or stack trace
-```
-
-**Additional Context:**
-Any other relevant information
-```
-
-## Feature Requests
-
-### Before Requesting
-
-- Check if already requested
-- Consider if it fits project scope
-- Think about FreeBSD compatibility
-
-### Feature Request Template
-
-```markdown
-**Feature Description:**
-Clear description of the proposed feature
-
-**Use Case:**
-Why is this feature needed?
-
-**Proposed API:**
-```go
-// Example API design
-```
-
-**Alternatives Considered:**
-Other approaches you've thought about
-
-**FreeBSD Compatibility:**
-Which FreeBSD versions support this?
-
-**Additional Context:**
-Any other relevant information
-```
-
-## Development Tips
-
-### Testing in Jails
-
-To avoid breaking your host networking:
-
-```bash
-# Create test jail
-doas jail -c name=ifctest path=/usr/jails/ifctest
-
-# Run tests in jail
-doas jexec ifctest make test-e2e
-```
-
-### Debugging
-
-- Use `doas ktrace -i` for system call tracing
-- Check `dmesg` for kernel messages
-- Use `ifconfig -v` to verify interface state
-- Test with `tcpdump` for network traffic
-
-### Common Pitfalls
-
-1. **Forgetting root checks** - Always check `os.Geteuid() != 0`
-2. **Not cleaning up** - Use `defer` for resource cleanup
-3. **Hardcoding interface names** - Use created/tested interfaces only
-4. **Platform assumptions** - Remember this is FreeBSD-specific
-5. **Skipping E2E tests** - Integration tests are critical
-
-## Questions?
-
-- Open a GitHub issue for questions
-- Check existing documentation
-- Review example programs in `examples/`
-
-## License
-
-By contributing, you agree that your contributions will be licensed under the MIT License.
-
----
-
-**Thank you for contributing to go-freebsd-ifc!**
+Questions and design discussions are welcome in GitHub issues.

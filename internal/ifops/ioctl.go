@@ -128,3 +128,40 @@ func Rename(oldName, newName string) error {
 
 	return isyscall.Ioctl(s.Int(), constants.SIOCSIFNAME, unsafe.Pointer(&ifr))
 }
+
+// SetVNET moves the host interface name into the vnet of jail jid
+// (SIOCSIFVNET, the ioctl behind "ifconfig <name> vnet <jid>").
+func SetVNET(name string, jid int) error {
+	return vnetIoctl(constants.SIOCSIFVNET, name, jid)
+}
+
+// ReclaimVNET moves interface name, as it is called inside jail jid, back
+// into the caller's vnet (SIOCSIFRVNET, "ifconfig <name> -vnet <jid>").
+func ReclaimVNET(name string, jid int) error {
+	return vnetIoctl(constants.SIOCSIFRVNET, name, jid)
+}
+
+func vnetIoctl(req uintptr, name string, jid int) error {
+	if name == "" {
+		return fmt.Errorf("interface name is empty")
+	}
+	if len(name) >= constants.IFNAMSIZ {
+		return fmt.Errorf("interface name too long: %s", name)
+	}
+	if jid <= 0 {
+		return fmt.Errorf("invalid jail id: %d", jid)
+	}
+
+	s, err := isyscall.CreateInetSocket()
+	if err != nil {
+		return err
+	}
+	defer s.Close()
+
+	var ifr C.struct_ifreq
+	isyscall.CopyString(unsafe.Pointer(&ifr.ifr_name[0]), name, constants.IFNAMSIZ)
+	// ifr_jid is the int member of the ifr_ifru union.
+	*(*C.int)(unsafe.Pointer(&ifr.ifr_ifru)) = C.int(jid)
+
+	return isyscall.Ioctl(s.Int(), req, unsafe.Pointer(&ifr))
+}

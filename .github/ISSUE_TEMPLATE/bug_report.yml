@@ -1,0 +1,75 @@
+name: Bug report
+description: Something in the library does not work as expected
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting! Please check existing issues first.
+        For security problems, use [private reporting](https://github.com/zombocoder/go-freebsd-ifc/security/advisories/new) instead.
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: What did you do, what did you expect, and what happened instead?
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Minimal reproduction
+      description: A small Go program or the exact API calls, plus the interfaces they need (e.g. created with `ifconfig epair create`).
+      render: go
+    validations:
+      required: true
+
+  - type: textarea
+    id: ifconfig
+    attributes:
+      label: Equivalent ifconfig/route command
+      description: If the same operation works with `ifconfig`/`route`, the command you used. This helps tell library bugs from kernel behavior.
+      render: shell
+
+  - type: textarea
+    id: output
+    attributes:
+      label: Error messages and relevant output
+      description: Error values, panics, and if useful `ifconfig -v <iface>` / `netstat -rn` output. Remove anything you consider private.
+      render: shell
+
+  - type: input
+    id: freebsd
+    attributes:
+      label: FreeBSD version
+      description: Output of `freebsd-version -ku`
+      placeholder: "15.1-RELEASE-p6 15.1-RELEASE-p6"
+    validations:
+      required: true
+
+  - type: input
+    id: go
+    attributes:
+      label: Go version
+      description: Output of `go version`
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: Library version
+      description: Module version or commit hash you are using
+    validations:
+      required: true
+
+  - type: dropdown
+    id: root
+    attributes:
+      label: Running as root?
+      options:
+        - "yes"
+        - "no"
+    validations:
+      required: true

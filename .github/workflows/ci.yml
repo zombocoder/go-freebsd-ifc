@@ -1,0 +1,74 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-go@v7
+        with:
+          go-version: stable
+
+      - name: Check formatting
+        run: |
+          unformatted=$(gofmt -l .)
+          if [ -n "$unformatted" ]; then
+            echo "::error::These files are not gofmt-formatted (run 'gofmt -w .'):"
+            echo "$unformatted"
+            exit 1
+          fi
+
+      - name: Check go.mod is tidy
+        run: go mod tidy -diff
+
+  freebsd:
+    # The library is FreeBSD-only and uses cgo against the base system
+    # headers, so it is built and tested inside a FreeBSD VM running under
+    # QEMU on the Linux runner. The e2e tests run as root (IFCLIB_E2E=1) and
+    # create and destroy their own cloned interfaces (bridge, epair, vlan,
+    # vxlan, lagg, tap, tun) and a throwaway vnet jail; the VM is discarded
+    # afterwards.
+    name: FreeBSD ${{ matrix.release }}
+    runs-on: ubuntu-latest
+    # A normal run takes a few minutes; occasionally the VM hangs while
+    # booting under nested virtualization. Fail fast so the job can be re-run.
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        release: ["14.5", "15.1"]
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Build and test in FreeBSD VM
+        uses: vmactions/freebsd-vm@v1.5.9
+        with:
+          release: ${{ matrix.release }}
+          copyback: false
+          cache-after-prepare: true
+          prepare: |
+            ASSUME_ALWAYS_YES=yes pkg install -y go
+          run: |
+            set -e
+            export GOFLAGS=-buildvcs=false
+            freebsd-version -ku
+            go version
+            go vet ./...
+            go build ./...
+            go build ./examples/...
+            IFCLIB_E2E=1 go test -count=1 -p 1 -v ./...

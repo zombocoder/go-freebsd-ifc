@@ -125,3 +125,39 @@ func SetMTU(name string, mtu int) error {
 func Rename(oldName, newName string) error {
 	return ifops.Rename(oldName, newName)
 }
+
+// MoveToVNET moves an interface from the current vnet into the vnet of the
+// jail with the given JID. The jail must have been created with vnet.
+//
+// This is the equivalent of "ifconfig <name> vnet <jid>". After the move the
+// interface is no longer visible on the host; use ReclaimFromVNET to get it
+// back, or destroy the jail (which returns it automatically).
+//
+// Requires root privileges. Returns ErrNotFound if the interface or jail
+// does not exist.
+//
+// Example:
+//
+//	if err := ifc.MoveToVNET("epair0b", jid); err != nil {
+//		log.Fatal(err)
+//	}
+func MoveToVNET(name string, jid int) error {
+	return ifops.SetVNET(name, jid)
+}
+
+// ReclaimFromVNET moves an interface out of the vnet of the jail with the
+// given JID back into the current vnet. name is the interface name as seen
+// inside the jail.
+//
+// This is the equivalent of "ifconfig <name> -vnet <jid>".
+//
+// Requires root privileges.
+//
+// Example:
+//
+//	if err := ifc.ReclaimFromVNET("epair0b", jid); err != nil {
+//		log.Fatal(err)
+//	}
+func ReclaimFromVNET(name string, jid int) error {
+	return ifops.ReclaimVNET(name, jid)
+}

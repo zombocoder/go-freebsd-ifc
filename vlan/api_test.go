@@ -6,6 +6,8 @@ package vlan
 import (
 	"os"
 	"testing"
+
+	"github.com/zombocoder/go-freebsd-ifc/epair"
 )
 
 func skipIfNotRoot(t *testing.T) {
@@ -52,9 +54,11 @@ func TestConfigure(t *testing.T) {
 	}
 	defer Destroy(vl)
 
-	// Configure VLAN tag 100 on lo0 (using lo0 since it always exists)
-	if err := Configure(vl, 100, "lo0"); err != nil {
-		t.Errorf("Configure(%s, 100, lo0) failed: %v", vl, err)
+	// The parent must support VLANs; lo0 does not (EPROTONOSUPPORT, same as
+	// "ifconfig vlan0 vlan 100 vlandev lo0"), so use an epair.
+	parent := testParent(t)
+	if err := Configure(vl, 100, parent); err != nil {
+		t.Errorf("Configure(%s, 100, %s) failed: %v", vl, parent, err)
 	}
 
 	// Get configuration
@@ -67,8 +71,8 @@ func TestConfigure(t *testing.T) {
 		t.Errorf("Expected tag 100, got %d", cfg.Tag)
 	}
 
-	if cfg.Parent != "lo0" {
-		t.Errorf("Expected parent 'lo0', got '%s'", cfg.Parent)
+	if cfg.Parent != parent {
+		t.Errorf("Expected parent %q, got %q", parent, cfg.Parent)
 	}
 }
 
@@ -84,7 +88,7 @@ func TestUpDown(t *testing.T) {
 	defer Destroy(vl)
 
 	// Configure first (required before bringing up)
-	if err := Configure(vl, 200, "lo0"); err != nil {
+	if err := Configure(vl, 200, testParent(t)); err != nil {
 		t.Fatalf("Configure() failed: %v", err)
 	}
 
@@ -132,4 +136,15 @@ func TestInvalidTag(t *testing.T) {
 	if err == nil {
 		t.Error("Configure() with tag 5000 should fail")
 	}
+}
+
+// testParent creates an epair whose A side serves as a VLAN parent.
+func testParent(t *testing.T) string {
+	t.Helper()
+	pair, err := epair.Create()
+	if err != nil {
+		t.Fatalf("epair.Create: %v", err)
+	}
+	t.Cleanup(func() { _ = epair.Destroy(pair.A) })
+	return pair.A
 }
