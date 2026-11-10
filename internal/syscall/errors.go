@@ -30,7 +30,8 @@ func mapErrno(err syscall.Errno) error {
 	case syscall.EADDRNOTAVAIL:
 		return ErrAddressNotAvailable
 	default:
-		return fmt.Errorf("%w: %v", ErrSyscall, err)
+		// Wrap the errno too so callers can test for it with errors.Is.
+		return fmt.Errorf("%w: %w", ErrSyscall, err)
 	}
 }
 
