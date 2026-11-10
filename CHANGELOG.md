@@ -6,6 +6,8 @@ follows [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [1.3.0] - 2026-11-10
+
 ### Added
 
 - `ifc.SetDescription(name, descr)` / `ifc.Description(name)`: set, clear
@@ -44,9 +46,10 @@ follows [Semantic Versioning](https://semver.org/).
   sentinel (EPERM, ENOENT/ENXIO, EEXIST, EINVAL, EBUSY, ...) are unchanged:
   they still return their sentinel (`ErrNotFound`, ...) and do not match
   `syscall.Exxx`. The message is unchanged.
-- `ifc` and `bridge` functions refuse empty and over-long interface names
-  with an error matching `ErrInvalidArgument` instead of panicking
-  (empty name) or passing a non-terminated name to the kernel.
+- `ifc`, `bridge`, lagg and vlan functions refuse empty and over-long
+  interface names with an error matching `ErrInvalidArgument`. An empty name
+  used to panic; over-long names that were already refused used to return a
+  plain formatted error, which now matches `ErrInvalidArgument` instead.
 - `bridge.SetMemberFlag` rejects `FlagSpan`, `FlagBSTPAdmEdge` and
   `FlagBSTPAdmCost` with `ErrInvalidArgument`: the kernel refuses SPAN and
   silently ignores the other two. `FlagQinQ` needs FreeBSD 15 or later.
@@ -138,7 +141,8 @@ Same code as 1.0.0 (the tag points to the same commit).
   promiscuous mode, statistics), `bridge`, `epair`, `vlan`, `lagg`, `tap`,
   `tun`, IPv4/IPv6 address management and routing.
 
-[Unreleased]: https://github.com/zombocoder/go-freebsd-ifc/compare/v1.2.0...HEAD
+[Unreleased]: https://github.com/zombocoder/go-freebsd-ifc/compare/v1.3.0...HEAD
+[1.3.0]: https://github.com/zombocoder/go-freebsd-ifc/compare/v1.2.0...v1.3.0
 [1.2.0]: https://github.com/zombocoder/go-freebsd-ifc/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/zombocoder/go-freebsd-ifc/compare/v1.0.2...v1.1.0
 [1.0.2]: https://github.com/zombocoder/go-freebsd-ifc/compare/v1.0.1...v1.0.2
