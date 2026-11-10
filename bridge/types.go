@@ -35,7 +35,7 @@ const (
 	FlagBSTPAdmEdge  MemberFlag = constants.IFBIF_BSTP_ADMEDGE  // STP admin edge enabled
 	FlagBSTPAdmCost  MemberFlag = constants.IFBIF_BSTP_ADMCOST  // STP admin path cost
 	FlagPrivate      MemberFlag = constants.IFBIF_PRIVATE       // private segment: no traffic to other private members
-	FlagQinQ         MemberFlag = constants.IFBIF_QINQ          // member allows 802.1ad Q-in-Q
+	FlagQinQ         MemberFlag = constants.IFBIF_QINQ          // member allows 802.1ad Q-in-Q (FreeBSD 15 and later)
 )
 
 var memberFlagNames = []struct {

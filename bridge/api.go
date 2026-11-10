@@ -177,8 +177,9 @@ func MemberFlags(bridge, member string) (MemberFlag, error) {
 //
 // The flags are read, modified and written back, so the change is not atomic
 // against another process changing the same member. flag may combine several
-// bits. FlagSpan cannot be changed this way (the kernel refuses with
-// ErrInvalidArgument). Requires root privileges.
+// bits. FlagSpan, FlagBSTPAdmEdge and FlagBSTPAdmCost cannot be changed this
+// way (the kernel refuses SPAN and ignores the other two), so they are
+// rejected with ErrInvalidArgument. Requires root privileges.
 //
 // Example:
 //
