@@ -24,6 +24,16 @@ type VLANConfig struct {
 	Parent string
 }
 
+func checkName(name string) error {
+	if name == "" {
+		return isyscall.NewValidationError("name", "", "interface name is empty")
+	}
+	if len(name) >= constants.IFNAMSIZ {
+		return isyscall.NewValidationError("name", name, "interface name too long")
+	}
+	return nil
+}
+
 // Configure sets the VLAN tag and parent interface
 func Configure(name string, tag uint16, parent string) error {
 	s, err := isyscall.CreateInetSocket()
@@ -34,8 +44,11 @@ func Configure(name string, tag uint16, parent string) error {
 
 	var vlanreq C.struct_vlanreq
 
-	if len(name) >= constants.IFNAMSIZ || len(parent) >= constants.IFNAMSIZ {
-		return isyscall.NewValidationError("interface name", name, "name too long")
+	if err := checkName(name); err != nil {
+		return err
+	}
+	if len(parent) >= constants.IFNAMSIZ {
+		return isyscall.NewValidationError("parent", parent, "name too long")
 	}
 
 	if tag == 0 || tag > 4094 {
@@ -66,8 +79,8 @@ func Get(name string) (VLANConfig, error) {
 
 	var vlanreq C.struct_vlanreq
 
-	if len(name) >= constants.IFNAMSIZ {
-		return VLANConfig{}, isyscall.NewValidationError("name", name, "interface name too long")
+	if err := checkName(name); err != nil {
+		return VLANConfig{}, err
 	}
 
 	var ifr C.struct_ifreq

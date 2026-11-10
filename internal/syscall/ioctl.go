@@ -34,6 +34,9 @@ func Ioctl(fd int, request uintptr, data unsafe.Pointer) error {
 
 // CopyString copies a Go string to a C buffer safely
 func CopyString(dst unsafe.Pointer, src string, maxLen int) {
+	if len(src) == 0 || maxLen <= 0 {
+		return
+	}
 	srcBytes := []byte(src)
 	if len(srcBytes) > maxLen {
 		srcBytes = srcBytes[:maxLen]

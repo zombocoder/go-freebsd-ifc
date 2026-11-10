@@ -13,6 +13,8 @@ Core interface management functionality.
 - `SetUp(name, up)` - Bring interface up/down
 - `SetMTU(name, mtu)` - Set interface MTU
 - `Rename(oldName, newName)` - Rename interface
+- `SetDescription(name, descr)` - Set (or clear with `""`) the interface description (`ifconfig <if> descr`)
+- `Description(name)` - Read the interface description
 - `SetPromisc(name, enable)` - Enable/disable promiscuous mode
 - `IsPromisc(name)` - Check if interface is in promiscuous mode
 - `GetStats(name)` - Get interface statistics (packets, bytes, errors)
@@ -41,6 +43,10 @@ Create and manage network bridges.
 - `DelMember(bridge, member)` - Remove interface from bridge
 - `Members(bridge)` - Get list of member interfaces
 - `Get(bridge)` - Get bridge info (members, MTU, state)
+- `MemberFlags(bridge, member)` - Read member flags (`MemberFlag`: `FlagLearning`, `FlagDiscover`, `FlagSTP`, `FlagSticky`, `FlagPrivate`, ...)
+- `SetMemberFlag(bridge, member, flag, set)` - Set/clear member flag(s), preserving the others
+- `SetMemberPrivate(bridge, member, private)` - Mark a member private (`ifconfig <br> private <if>`)
+- `MemberPrivate(bridge, member)` - Check whether a member is private
 
 **Example:**
 ```go

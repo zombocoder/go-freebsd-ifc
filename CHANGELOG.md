@@ -6,6 +6,53 @@ follows [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+
+- `ifc.SetDescription(name, descr)` / `ifc.Description(name)`: set, clear
+  (empty string) and read the interface description (SIOCSIFDESCR /
+  SIOCGIFDESCR), shown by `ifconfig` as `description:`. The kernel limit is
+  `net.ifdescr_maxlen` (default 1024 including the NUL); a longer description
+  is refused. `Interface` does not carry the description: it would cost one
+  ioctl per interface in `List`.
+- `bridge.SetMemberPrivate(bridge, member, private)` /
+  `bridge.MemberPrivate(bridge, member)`: mark a bridge member as a private
+  segment so private members cannot talk to each other (`ifconfig bridge0
+  private tap0`).
+- `bridge.MemberFlags` / `bridge.SetMemberFlag` with the typed `MemberFlag`
+  constants (`FlagLearning`, `FlagDiscover`, `FlagSTP`, `FlagSpan`,
+  `FlagSticky`, `FlagBSTP*`, `FlagPrivate`, `FlagQinQ`) for any bridge member
+  flag (BRDGGIFFLGS / BRDGSIFFLGS). `SetMemberFlag` reads, modifies and writes
+  back, so other flags are preserved.
+
+### Fixed
+
+- `bridge.AddMember`, `bridge.DelMember` and `bridge.Members` could fail with
+  "resource not found" for an existing bridge: the request struct was
+  allocated with `malloc` and the bridge name copied without a terminating
+  NUL, so bytes left in the heap by an earlier, longer name (for example
+  after a failed lookup of `bridge999999`) became part of the name. The
+  struct is now zero-initialised. The bridge request structs are also C
+  memory now instead of Go pointers stored in C memory (a cgo pointer rule
+  violation).
+- `internal/syscall.CopyString` no longer panics on an empty string.
+
+### Changed
+
+- Syscall errors that have no dedicated sentinel (for example ENOMSG,
+  ENAMETOOLONG) now also wrap the underlying `syscall.Errno`, so
+  `errors.Is(err, syscall.ENOMSG)` works. Errnos that already map to a
+  sentinel (EPERM, ENOENT/ENXIO, EEXIST, EINVAL, EBUSY, ...) are unchanged:
+  they still return their sentinel (`ErrNotFound`, ...) and do not match
+  `syscall.Exxx`. The message is unchanged.
+- `ifc` and `bridge` functions refuse empty and over-long interface names
+  with an error matching `ErrInvalidArgument` instead of panicking
+  (empty name) or passing a non-terminated name to the kernel.
+- `bridge.SetMemberFlag` rejects `FlagSpan`, `FlagBSTPAdmEdge` and
+  `FlagBSTPAdmCost` with `ErrInvalidArgument`: the kernel refuses SPAN and
+  silently ignores the other two. `FlagQinQ` needs FreeBSD 15 or later.
+- `ifc.SetDescription` refuses a description longer than
+  `net.ifdescr_maxlen` with `ErrInvalidArgument` before calling the kernel.
+
 ## [1.2.0] - 2026-11-08
 
 ### Added

@@ -43,10 +43,20 @@ type LAGGConfig struct {
 // in its first field (ra_ifname / rp_ifname), not wrapped in a struct
 // ifreq. See setlaggproto() and setlaggport() in sbin/ifconfig/iflagg.c.
 
-// SetProto sets the LAGG protocol
-func SetProto(name string, proto int) error {
+func checkName(name string) error {
+	if name == "" {
+		return isyscall.NewValidationError("name", "", "interface name is empty")
+	}
 	if len(name) >= constants.IFNAMSIZ {
 		return isyscall.NewValidationError("name", name, "interface name too long")
+	}
+	return nil
+}
+
+// SetProto sets the LAGG protocol
+func SetProto(name string, proto int) error {
+	if err := checkName(name); err != nil {
+		return err
 	}
 
 	s, err := isyscall.CreateInetSocket()
@@ -95,8 +105,8 @@ func portIoctl(req uintptr, lagg, port string) error {
 
 // Get returns LAGG configuration
 func Get(name string) (LAGGConfig, error) {
-	if len(name) >= constants.IFNAMSIZ {
-		return LAGGConfig{}, isyscall.NewValidationError("name", name, "interface name too long")
+	if err := checkName(name); err != nil {
+		return LAGGConfig{}, err
 	}
 
 	s, err := isyscall.CreateInetSocket()

@@ -6,6 +6,8 @@ package bridge
 import (
 	"os"
 	"testing"
+
+	"github.com/zombocoder/go-freebsd-ifc/internal/cloneops"
 )
 
 // skipIfNotRoot skips the test if not running as root
@@ -136,5 +138,40 @@ func TestGetNonExistent(t *testing.T) {
 	_, err := Get("bridge999999")
 	if err == nil {
 		t.Error("Get() should fail for non-existent bridge")
+	}
+}
+
+// TestAddMemberAfterFailedLookup guards against uninitialised memory in the
+// ifdrv request: ifd_name was copied without a terminating NUL into malloc'd
+// (not zeroed) memory, so a longer, freed name such as "bridge999999" left
+// over from the previous call turned "bridge0" into "bridge0999999".
+func TestAddMemberAfterFailedLookup(t *testing.T) {
+	skipIfNotRoot(t)
+	skipIfNotE2E(t)
+
+	br, err := Create()
+	if err != nil {
+		t.Fatalf("Create() failed: %v", err)
+	}
+	tap, err := cloneops.Create("tap")
+	if err != nil {
+		Destroy(br)
+		t.Fatalf("create tap: %v", err)
+	}
+	t.Cleanup(func() {
+		_ = DelMember(br, tap)
+		cloneops.Destroy(tap)
+		Destroy(br)
+	})
+
+	if _, err := Members("bridge999999"); err == nil {
+		t.Fatal("Members() should fail for a non-existent bridge")
+	}
+	if err := AddMember(br, tap); err != nil {
+		t.Fatalf("AddMember(%s, %s) after a failed lookup: %v", br, tap, err)
+	}
+	members, err := Members(br)
+	if err != nil || len(members) != 1 || members[0] != tap {
+		t.Errorf("Members(%s) = %v, %v; want [%s]", br, members, err, tap)
 	}
 }

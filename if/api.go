@@ -161,3 +161,43 @@ func MoveToVNET(name string, jid int) error {
 func ReclaimFromVNET(name string, jid int) error {
 	return ifops.ReclaimVNET(name, jid)
 }
+
+// SetDescription sets the description of an interface, the text shown by
+// "ifconfig <name>" as "description:". An empty string clears it.
+//
+// The kernel limits the size to net.ifdescr_maxlen (default 1024) bytes
+// including a terminating NUL, so the longest description is 1023 bytes by
+// default; a longer one is refused and the old description is kept. The
+// description must not contain NUL bytes.
+//
+// Requires root privileges.
+//
+// Example:
+//
+//	// Mark a tap interface
+//	if err := ifc.SetDescription("tap0", "microvm-runner vm=abc123"); err != nil {
+//		log.Fatal(err)
+//	}
+//
+//	// Remove the description
+//	if err := ifc.SetDescription("tap0", ""); err != nil {
+//		log.Fatal(err)
+//	}
+func SetDescription(name, descr string) error {
+	return ifops.SetDescription(name, descr)
+}
+
+// Description returns the description of an interface, or "" if none is set.
+//
+// Returns ErrNotFound if the interface does not exist.
+//
+// Example:
+//
+//	descr, err := ifc.Description("tap0")
+//	if err != nil {
+//		log.Fatal(err)
+//	}
+//	fmt.Printf("tap0: %q\n", descr)
+func Description(name string) (string, error) {
+	return ifops.GetDescription(name)
+}
