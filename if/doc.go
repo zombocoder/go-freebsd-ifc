@@ -16,6 +16,13 @@ List all network interfaces:
 		fmt.Printf("%s: %v\n", iface.Name, iface.Addrs)
 	}
 
+Mark an interface with a description (shown by ifconfig as "description:"):
+
+	if err := ifc.SetDescription("tap0", "vm=abc123"); err != nil {
+		log.Fatal(err)
+	}
+	descr, _ := ifc.Description("tap0")
+
 Get a specific interface:
 
 	iface, err := ifc.Get("em0")

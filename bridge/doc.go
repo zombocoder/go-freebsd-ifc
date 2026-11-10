@@ -28,6 +28,15 @@ Create and configure a bridge:
 		log.Fatal(err)
 	}
 
+Isolate members from each other with private ports (private members only
+reach non-private ones, such as an uplink):
+
+	if err := bridge.SetMemberPrivate(br, "tap0", true); err != nil {
+		log.Fatal(err)
+	}
+	private, _ := bridge.MemberPrivate(br, "tap0")
+	flags, _ := bridge.MemberFlags(br, "tap0") // e.g. LEARNING,DISCOVER,PRIVATE
+
 Query bridge information:
 
 	info, err := bridge.Get("bridge0")

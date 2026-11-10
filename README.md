@@ -20,6 +20,7 @@ running as root in QEMU VMs. See the [changelog](CHANGELOG.md) and
   - Get interface details (name, index, MTU, flags, addresses)
   - Set MTU, bring up/down, rename interfaces
   - Enable/disable promiscuous mode
+  - Set, read and clear the interface description
   - Get interface statistics (packets, bytes, errors, drops)
 - **VNET** - Move interfaces into and out of vnet jails (`ifconfig <if> vnet <jail>`)
 - **Bridge Support** - Create and manage bridge(4) interfaces with member management
@@ -133,6 +134,8 @@ import ifc "github.com/zombocoder/go-freebsd-ifc/if"
 | `SetUp(name string, up bool) error`    | Bring interface up/down | Yes           |
 | `SetMTU(name string, mtu int) error`   | Set interface MTU       | Yes           |
 | `Rename(old, new string) error`        | Rename interface        | Yes           |
+| `SetDescription(name, descr string) error` | Set interface description ("" clears) | Yes |
+| `Description(name string) (string, error)` | Get interface description | No          |
 | `MoveToVNET(name string, jid int) error` | Move interface into a vnet jail | Yes |
 | `ReclaimFromVNET(name string, jid int) error` | Move interface back from a vnet jail | Yes |
 
@@ -165,6 +168,10 @@ import "github.com/zombocoder/go-freebsd-ifc/bridge"
 | `DelMember(bridge, member string) error`   | Remove member interface | Yes           |
 | `Members(bridge string) ([]string, error)` | List members            | No            |
 | `Get(bridge string) (Info, error)`         | Get bridge info         | No            |
+| `MemberFlags(bridge, member string) (MemberFlag, error)` | Get member flags | No |
+| `SetMemberFlag(bridge, member string, flag MemberFlag, set bool) error` | Set/clear member flag, keep others | Yes |
+| `SetMemberPrivate(bridge, member string, private bool) error` | Isolate member from other private members | Yes |
+| `MemberPrivate(bridge, member string) (bool, error)` | Is member private | No |
 
 
 **Example:**

@@ -6,6 +6,39 @@ follows [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+
+- `ifc.SetDescription(name, descr)` / `ifc.Description(name)`: set, clear
+  (empty string) and read the interface description (SIOCSIFDESCR /
+  SIOCGIFDESCR), shown by `ifconfig` as `description:`. The kernel limit is
+  `net.ifdescr_maxlen` (default 1024 including the NUL); a longer description
+  is refused. `Interface` does not carry the description: it would cost one
+  ioctl per interface in `List`.
+- `bridge.SetMemberPrivate(bridge, member, private)` /
+  `bridge.MemberPrivate(bridge, member)`: mark a bridge member as a private
+  segment so private members cannot talk to each other (`ifconfig bridge0
+  private tap0`).
+- `bridge.MemberFlags` / `bridge.SetMemberFlag` with the typed `MemberFlag`
+  constants (`FlagLearning`, `FlagDiscover`, `FlagSTP`, `FlagSpan`,
+  `FlagSticky`, `FlagBSTP*`, `FlagPrivate`, `FlagQinQ`) for any bridge member
+  flag (BRDGGIFFLGS / BRDGSIFFLGS). `SetMemberFlag` reads, modifies and writes
+  back, so other flags are preserved.
+
+### Fixed
+
+- `bridge.AddMember`, `bridge.DelMember` and `bridge.Members` could fail with
+  "resource not found" for an existing bridge: the request struct was
+  allocated with `malloc` and the bridge name copied without a terminating
+  NUL, so bytes left in the heap by an earlier, longer name (for example
+  after a failed lookup of `bridge999999`) became part of the name. The
+  struct is now zero-initialised.
+
+### Changed
+
+- Syscall errors without a dedicated sentinel now also wrap the underlying
+  `syscall.Errno`, so `errors.Is(err, syscall.ENOMSG)` works. The message is
+  unchanged.
+
 ## [1.2.0] - 2026-11-08
 
 ### Added
