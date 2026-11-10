@@ -174,8 +174,8 @@ func TestDescriptionLimit(t *testing.T) {
 	}
 
 	tooLong := strings.Repeat("b", max)
-	if err := SetDescription(name, tooLong); err == nil {
-		t.Errorf("SetDescription of %d bytes should fail", len(tooLong))
+	if err := SetDescription(name, tooLong); !errors.Is(err, ErrInvalidArgument) {
+		t.Errorf("SetDescription of %d bytes = %v, want ErrInvalidArgument", len(tooLong), err)
 	}
 	if got, _ := Description(name); got != fits {
 		t.Errorf("failed set changed the stored description (%d bytes)", len(got))

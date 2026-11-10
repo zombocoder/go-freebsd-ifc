@@ -18,6 +18,19 @@ import (
 	isyscall "github.com/zombocoder/go-freebsd-ifc/internal/syscall"
 )
 
+// checkIfName validates an interface name before it is copied into a fixed
+// IFNAMSIZ buffer (a name of IFNAMSIZ or more bytes would not be NUL
+// terminated). The error matches ErrInvalidArgument.
+func checkIfName(name string) error {
+	if name == "" {
+		return isyscall.NewValidationError("interface name", "", "name is empty")
+	}
+	if len(name) >= constants.IFNAMSIZ {
+		return isyscall.NewValidationError("interface name", name, "name too long")
+	}
+	return nil
+}
+
 // SetFlags modifies interface flags
 func SetFlags(name string, flag uint32, set bool) error {
 	s, err := isyscall.CreateInetSocket()
@@ -27,8 +40,8 @@ func SetFlags(name string, flag uint32, set bool) error {
 	defer s.Close()
 
 	var ifr C.struct_ifreq
-	if len(name) >= constants.IFNAMSIZ {
-		return fmt.Errorf("interface name too long: %s", name)
+	if err := checkIfName(name); err != nil {
+		return err
 	}
 	isyscall.CopyString(unsafe.Pointer(&ifr.ifr_name[0]), name, constants.IFNAMSIZ)
 
@@ -55,8 +68,8 @@ func GetMTU(name string) (int, error) {
 	defer s.Close()
 
 	var ifr C.struct_ifreq
-	if len(name) >= constants.IFNAMSIZ {
-		return 0, fmt.Errorf("interface name too long: %s", name)
+	if err := checkIfName(name); err != nil {
+		return 0, err
 	}
 	isyscall.CopyString(unsafe.Pointer(&ifr.ifr_name[0]), name, constants.IFNAMSIZ)
 
@@ -76,8 +89,8 @@ func SetMTU(name string, mtu int) error {
 	defer s.Close()
 
 	var ifr C.struct_ifreq
-	if len(name) >= constants.IFNAMSIZ {
-		return fmt.Errorf("interface name too long: %s", name)
+	if err := checkIfName(name); err != nil {
+		return err
 	}
 	isyscall.CopyString(unsafe.Pointer(&ifr.ifr_name[0]), name, constants.IFNAMSIZ)
 
@@ -88,11 +101,11 @@ func SetMTU(name string, mtu int) error {
 
 // Rename renames an interface
 func Rename(oldName, newName string) error {
-	if len(oldName) >= constants.IFNAMSIZ || len(newName) >= constants.IFNAMSIZ {
-		return fmt.Errorf("interface name too long")
+	if err := checkIfName(oldName); err != nil {
+		return err
 	}
-	if oldName == "" || newName == "" {
-		return fmt.Errorf("interface name is empty")
+	if err := checkIfName(newName); err != nil {
+		return err
 	}
 
 	s, err := isyscall.CreateInetSocket()
@@ -142,11 +155,8 @@ func ReclaimVNET(name string, jid int) error {
 }
 
 func vnetIoctl(req uintptr, name string, jid int) error {
-	if name == "" {
-		return fmt.Errorf("interface name is empty")
-	}
-	if len(name) >= constants.IFNAMSIZ {
-		return fmt.Errorf("interface name too long: %s", name)
+	if err := checkIfName(name); err != nil {
+		return err
 	}
 	if jid <= 0 {
 		return fmt.Errorf("invalid jail id: %d", jid)

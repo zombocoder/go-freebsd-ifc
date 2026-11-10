@@ -5,6 +5,7 @@ package ifops
 
 /*
 #include <sys/types.h>
+#include <sys/sysctl.h>
 #include <net/if.h>
 #include <string.h>
 #include <stdlib.h>
@@ -14,6 +15,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"sync"
 	"syscall"
 	"unsafe"
 
@@ -26,14 +28,25 @@ import (
 // moment, so a handful of attempts is plenty.
 const descrRetries = 5
 
-func checkDescrName(name string) error {
-	if name == "" {
-		return fmt.Errorf("interface name is empty")
-	}
-	if len(name) >= constants.IFNAMSIZ {
-		return fmt.Errorf("interface name too long: %s", name)
-	}
-	return nil
+var (
+	descrMaxOnce sync.Once
+	descrMax     int // net.ifdescr_maxlen, 0 if it could not be read
+)
+
+// descrMaxLen returns the kernel's description size limit (NUL included), read
+// once from net.ifdescr_maxlen, or 0 when unknown. The limit is only used to
+// refuse early; the kernel stays the authority.
+func descrMaxLen() int {
+	descrMaxOnce.Do(func() {
+		name := C.CString("net.ifdescr_maxlen")
+		defer C.free(unsafe.Pointer(name))
+		var v C.int
+		n := C.size_t(unsafe.Sizeof(v))
+		if C.sysctlbyname(name, unsafe.Pointer(&v), &n, nil, 0) == 0 && v > 0 {
+			descrMax = int(v)
+		}
+	})
+	return descrMax
 }
 
 // SetDescription sets the description of an interface (SIOCSIFDESCR). An
@@ -44,11 +57,16 @@ func checkDescrName(name string) error {
 // length is len(descr)+1. A length of 0 removes the description. A length
 // above net.ifdescr_maxlen is refused with ENAMETOOLONG.
 func SetDescription(name, descr string) error {
-	if err := checkDescrName(name); err != nil {
+	if err := checkIfName(name); err != nil {
 		return err
 	}
 	if strings.IndexByte(descr, 0) >= 0 {
 		return fmt.Errorf("description contains a NUL byte")
+	}
+
+	if max := descrMaxLen(); max > 0 && len(descr)+1 > max {
+		return isyscall.NewValidationError("description", fmt.Sprintf("%d bytes", len(descr)),
+			fmt.Sprintf("exceeds net.ifdescr_maxlen (%d, NUL included)", max))
 	}
 
 	s, err := isyscall.CreateInetSocket()
@@ -90,7 +108,7 @@ func SetDescription(name, descr string) error {
 // the first call probes with length 0, the second reads into a buffer of that
 // size. An interface without a description answers ENOMSG.
 func GetDescription(name string) (string, error) {
-	if err := checkDescrName(name); err != nil {
+	if err := checkIfName(name); err != nil {
 		return "", err
 	}
 
