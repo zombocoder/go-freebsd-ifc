@@ -35,8 +35,9 @@ func AddMember(bridge, member string) error {
 
 	isyscall.CopyString(unsafe.Pointer(&req.ifbr_ifsname[0]), member, constants.IFNAMSIZ)
 
-	// Allocate C memory for ifdrv to avoid Go pointer issues
-	ifd := (*C.struct_ifdrv)(C.malloc(C.size_t(unsafe.Sizeof(C.struct_ifdrv{}))))
+	// Allocate zeroed C memory for ifdrv to avoid Go pointer issues; the
+	// name copy below does not write a terminating NUL.
+	ifd := (*C.struct_ifdrv)(C.calloc(1, C.size_t(unsafe.Sizeof(C.struct_ifdrv{}))))
 	defer C.free(unsafe.Pointer(ifd))
 
 	isyscall.CopyString(unsafe.Pointer(&ifd.ifd_name[0]), bridge, constants.IFNAMSIZ)
@@ -67,8 +68,9 @@ func DelMember(bridge, member string) error {
 
 	isyscall.CopyString(unsafe.Pointer(&req.ifbr_ifsname[0]), member, constants.IFNAMSIZ)
 
-	// Allocate C memory for ifdrv to avoid Go pointer issues
-	ifd := (*C.struct_ifdrv)(C.malloc(C.size_t(unsafe.Sizeof(C.struct_ifdrv{}))))
+	// Allocate zeroed C memory for ifdrv to avoid Go pointer issues; the
+	// name copy below does not write a terminating NUL.
+	ifd := (*C.struct_ifdrv)(C.calloc(1, C.size_t(unsafe.Sizeof(C.struct_ifdrv{}))))
 	defer C.free(unsafe.Pointer(ifd))
 
 	isyscall.CopyString(unsafe.Pointer(&ifd.ifd_name[0]), bridge, constants.IFNAMSIZ)
@@ -110,8 +112,9 @@ func GetMembers(bridge string) ([]string, error) {
 		return nil, fmt.Errorf("interface name too long")
 	}
 
-	// Allocate C memory for ifdrv to avoid Go pointer issues
-	ifd := (*C.struct_ifdrv)(C.malloc(C.size_t(unsafe.Sizeof(C.struct_ifdrv{}))))
+	// Allocate zeroed C memory for ifdrv to avoid Go pointer issues; the
+	// name copy below does not write a terminating NUL.
+	ifd := (*C.struct_ifdrv)(C.calloc(1, C.size_t(unsafe.Sizeof(C.struct_ifdrv{}))))
 	defer C.free(unsafe.Pointer(ifd))
 
 	isyscall.CopyString(unsafe.Pointer(&ifd.ifd_name[0]), bridge, constants.IFNAMSIZ)
